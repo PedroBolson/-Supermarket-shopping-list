@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Plus, Sparkles, Trash2, Edit3, Loader2 } from 'lucide-react'
 import { useAuth } from '../../hooks/use-auth'
-import { Button, Card, Checkbox, Input, Avatar } from '../../components/ui'
+import { Avatar, Button, Card, Checkbox, Input, Modal } from '../../components/ui'
+import { ConfirmDialog } from '../../components/feedback'
 import type { ShoppingList, ShoppingListItem } from '../../types'
 import {
   createList,
@@ -23,6 +24,11 @@ interface FeedbackMessage {
   message: string
 }
 
+type ListModalState = { mode: 'create' } | { mode: 'edit'; list: ShoppingList }
+type ConfirmState =
+  | { type: 'list'; listId: string; title: string }
+  | { type: 'item'; listId: string; item: ShoppingListItem }
+
 export function ListsPage() {
   const { profile } = useAuth()
   const [lists, setLists] = useState<ShoppingList[]>([])
@@ -30,16 +36,17 @@ export function ListsPage() {
   const [items, setItems] = useState<ShoppingListItem[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [itemsLoading, setItemsLoading] = useState(false)
-  const [creatingList, setCreatingList] = useState(false)
-  const [listForm, setListForm] = useState({ name: '', description: '' })
   const [itemForm, setItemForm] = useState({ name: '', quantity: '', notes: '' })
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editItemForm, setEditItemForm] = useState({ name: '', quantity: '', notes: '' })
-  const [editingList, setEditingList] = useState(false)
-  const [listDetailsForm, setListDetailsForm] = useState({ name: '', description: '' })
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null)
   const isLargeScreen = useMediaQuery('(min-width: 1024px)')
   const [activeView, setActiveView] = useState<'lists' | 'items'>('lists')
+  const [listModal, setListModal] = useState<ListModalState | null>(null)
+  const [listModalForm, setListModalForm] = useState({ name: '', description: '' })
+  const [listModalLoading, setListModalLoading] = useState(false)
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
 
   useEffect(() => {
     setListLoading(true)
@@ -74,18 +81,6 @@ export function ListsPage() {
   }, [selectedListId])
 
   useEffect(() => {
-    if (!selectedListId) {
-      setListDetailsForm({ name: '', description: '' })
-      return
-    }
-
-    const selectedList = lists.find((list) => list.id === selectedListId)
-    if (selectedList) {
-      setListDetailsForm({ name: selectedList.name, description: selectedList.description ?? '' })
-    }
-  }, [lists, selectedListId])
-
-  useEffect(() => {
     if (isLargeScreen) {
       setActiveView('lists')
     }
@@ -99,6 +94,19 @@ export function ListsPage() {
     setActiveView(selectedListId ? 'items' : 'lists')
   }, [selectedListId, isLargeScreen])
 
+  useEffect(() => {
+    if (!listModal) {
+      setListModalForm({ name: '', description: '' })
+      return
+    }
+
+    if (listModal.mode === 'edit') {
+      setListModalForm({ name: listModal.list.name, description: listModal.list.description ?? '' })
+    } else {
+      setListModalForm({ name: '', description: '' })
+    }
+  }, [listModal])
+
   const selectedList = useMemo(
     () => lists.find((list) => list.id === selectedListId) ?? null,
     [lists, selectedListId],
@@ -108,27 +116,37 @@ export function ListsPage() {
   const showListsPanel = isLargeScreen || activeView === 'lists'
   const showItemsPanel = isLargeScreen || activeView === 'items'
 
-  const handleCreateList = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitListModal = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!profile) return
+    if (!profile || !listModal) return
 
-    if (!listForm.name.trim()) {
+    if (!listModalForm.name.trim()) {
       setFeedback({ type: 'error', message: 'O nome da lista é obrigatório.' })
       return
     }
 
     try {
-      setFeedback(null)
-      await createList({
-        name: listForm.name.trim(),
-        description: listForm.description.trim(),
-        owner: profile,
-      })
-      setListForm({ name: '', description: '' })
-      setFeedback({ type: 'success', message: 'Lista criada com sucesso!' })
+      setListModalLoading(true)
+      if (listModal.mode === 'create') {
+        await createList({
+          name: listModalForm.name.trim(),
+          description: listModalForm.description.trim(),
+          owner: profile,
+        })
+        setFeedback({ type: 'success', message: 'Lista criada com sucesso!' })
+      } else {
+        await updateList(listModal.list.id, {
+          name: listModalForm.name.trim(),
+          description: listModalForm.description.trim(),
+        })
+        setFeedback({ type: 'success', message: 'Lista atualizada com sucesso.' })
+      }
+      setListModal(null)
     } catch (error) {
       console.error(error)
-      setFeedback({ type: 'error', message: 'Não foi possível criar a lista. Tente novamente.' })
+      setFeedback({ type: 'error', message: 'Não foi possível salvar a lista.' })
+    } finally {
+      setListModalLoading(false)
     }
   }
 
@@ -166,27 +184,6 @@ export function ListsPage() {
     }
   }
 
-  const handleDeleteList = async () => {
-    if (!selectedListId) return
-    try {
-      await deleteList(selectedListId)
-      setFeedback({ type: 'success', message: 'Lista removida com sucesso.' })
-    } catch (error) {
-      console.error(error)
-      setFeedback({ type: 'error', message: 'Erro ao remover a lista.' })
-    }
-  }
-
-  const handleDeleteItem = async (itemId: string) => {
-    if (!selectedListId) return
-    try {
-      await deleteListItem(selectedListId, itemId)
-    } catch (error) {
-      console.error(error)
-      setFeedback({ type: 'error', message: 'Erro ao remover o item.' })
-    }
-  }
-
   const handleStartEditItem = (item: ShoppingListItem) => {
     setEditingItemId(item.id)
     setEditItemForm({ name: item.name, quantity: item.quantity ?? '', notes: item.notes ?? '' })
@@ -209,25 +206,38 @@ export function ListsPage() {
     }
   }
 
-  const handleUpdateListDetails = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const openCreateListModal = () => setListModal({ mode: 'create' })
+  const openEditListModal = () => {
+    if (!selectedList) return
+    setListModal({ mode: 'edit', list: selectedList })
+  }
+
+  const requestDeleteList = () => {
+    if (!selectedList) return
+    setConfirmState({ type: 'list', listId: selectedList.id, title: selectedList.name })
+  }
+
+  const requestDeleteItem = (item: ShoppingListItem) => {
     if (!selectedListId) return
+    setConfirmState({ type: 'item', listId: selectedListId, item })
+  }
 
-    if (!listDetailsForm.name.trim()) {
-      setFeedback({ type: 'error', message: 'A lista deve ter um nome.' })
-      return
-    }
-
+  const handleConfirmDelete = async () => {
+    if (!confirmState) return
+    setConfirmLoading(true)
     try {
-      await updateList(selectedListId, {
-        name: listDetailsForm.name.trim(),
-        description: listDetailsForm.description.trim(),
-      })
-      setEditingList(false)
-      setFeedback({ type: 'success', message: 'Detalhes atualizados.' })
+      if (confirmState.type === 'list') {
+        await deleteList(confirmState.listId)
+        setFeedback({ type: 'success', message: 'Lista removida com sucesso.' })
+      } else {
+        await deleteListItem(confirmState.listId, confirmState.item.id)
+      }
+      setConfirmState(null)
     } catch (error) {
       console.error(error)
-      setFeedback({ type: 'error', message: 'Erro ao atualizar a lista.' })
+      setFeedback({ type: 'error', message: 'Não foi possível concluir a exclusão.' })
+    } finally {
+      setConfirmLoading(false)
     }
   }
 
@@ -254,44 +264,13 @@ export function ListsPage() {
             </Button>
           ) : null}
           {(isLargeScreen || activeView === 'lists') && (
-            <Button onClick={() => setCreatingList((value) => !value)} variant="outline" className="self-start md:self-auto">
+            <Button onClick={openCreateListModal} variant="outline" className="self-start md:self-auto">
               <Plus className="h-4 w-4" />
               Nova lista
             </Button>
           )}
         </div>
       </header>
-
-      <AnimatePresence>
-        {creatingList ? (
-          <motion.div
-            className="rounded-3xl border border-border/60 bg-surface/70 p-6 backdrop-blur"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-          >
-            <form className="grid gap-4 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleCreateList}>
-              <Input
-                label="Nome da lista"
-                placeholder="Ex: Compras da semana"
-                value={listForm.name}
-                onChange={(event) => setListForm((state) => ({ ...state, name: event.target.value }))}
-                required
-              />
-              <Input
-                label="Descrição"
-                placeholder="Algo para lembrar?"
-                value={listForm.description}
-                onChange={(event) => setListForm((state) => ({ ...state, description: event.target.value }))}
-              />
-              <Button type="submit" className="self-end md:self-auto">
-                <Sparkles className="h-4 w-4" />
-                Criar
-              </Button>
-            </form>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
 
       {feedback ? (
         <motion.div
@@ -321,30 +300,31 @@ export function ListsPage() {
               !isLargeScreen && activeView !== 'lists' && 'hidden',
             )}
           >
-            <div className="flex items-center justify-between flex-shrink-0">
+            <div className="flex flex-shrink-0 items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Listas</h2>
               {listLoading ? <Loader2 className="h-4 w-4 animate-spin text-primary-500" /> : null}
             </div>
 
             <div
               className={cn(
-                'space-y-3 flex-1 min-h-0 overflow-y-auto pr-1 scrollbar-thin',
+                'space-y-3',
+                isLargeScreen && 'xl:flex-1 xl:min-h-0 xl:overflow-y-auto xl:pr-1',
               )}
-              style={isLargeScreen ? { maxHeight: 'calc(100vh - 360px)' } : { maxHeight: '60vh' }}
+              style={isLargeScreen ? { maxHeight: 'calc(100vh - 340px)' } : undefined}
             >
               <AnimatePresence>
                 {lists.map((list) => {
                   const isActive = list.id === selectedListId
                   return (
-                  <motion.button
-                    key={list.id}
-                    onClick={() => {
-                      setSelectedListId(list.id)
-                      if (!isLargeScreen) {
-                        setActiveView('items')
-                      }
-                    }}
-                    className="relative w-full rounded-2xl border border-border/40 bg-card p-4 text-left transition hover:border-primary-300/60"
+                    <motion.button
+                      key={list.id}
+                      onClick={() => {
+                        setSelectedListId(list.id)
+                        if (!isLargeScreen) {
+                          setActiveView('items')
+                        }
+                      }}
+                      className="relative w-full rounded-2xl border border-border/40 bg-card p-4 text-left transition hover:border-primary-300/60"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
@@ -352,7 +332,7 @@ export function ListsPage() {
                       {isActive ? (
                         <motion.span
                           layoutId="list-active"
-                          className="absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-primary-500/25 via-primary-500/10 to-transparent"
+                          className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-primary-500/25 via-primary-500/10 to-transparent"
                           transition={{ type: 'spring', stiffness: 220, damping: 26 }}
                         />
                       ) : null}
@@ -395,21 +375,21 @@ export function ListsPage() {
                       <p className="mt-1 text-sm text-muted">{selectedList.description}</p>
                     ) : null}
                   </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setEditingList(true)}>
-                    <Edit3 className="h-4 w-4" />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-danger-500 hover:text-danger-600"
-                    onClick={handleDeleteList}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Remover
-                  </Button>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={openEditListModal}>
+                      <Edit3 className="h-4 w-4" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-danger-500 hover:text-danger-600"
+                      onClick={requestDeleteList}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remover
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -418,43 +398,7 @@ export function ListsPage() {
                   <StatusCard title="Pendentes" value={items.length - purchasedCount} subtitle="Restantes" />
                 </div>
 
-                <AnimatePresence>
-                  {editingList ? (
-                    <motion.form
-                      className="rounded-2xl border border-border/50 bg-card/70 p-4"
-                      onSubmit={handleUpdateListDetails}
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                    >
-                      <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
-                        <Input
-                          label="Nome"
-                          value={listDetailsForm.name}
-                          onChange={(event) =>
-                            setListDetailsForm((form) => ({ ...form, name: event.target.value }))
-                          }
-                          required
-                        />
-                        <Input
-                          label="Descrição"
-                          value={listDetailsForm.description}
-                          onChange={(event) =>
-                            setListDetailsForm((form) => ({ ...form, description: event.target.value }))
-                          }
-                        />
-                        <div className="flex items-end gap-2">
-                          <Button type="submit">Salvar</Button>
-                          <Button type="button" variant="ghost" onClick={() => setEditingList(false)}>
-                            Cancelar
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.form>
-                  ) : null}
-                </AnimatePresence>
-
-                <form className="grid gap-4 rounded-2xl border border-border/50 bg-card/70 p-4" onSubmit={handleAddItem}>
+                <form className="grid gap-4 rounded-2xl border border-border/40 bg-card p-4" onSubmit={handleAddItem}>
                   <div className="grid gap-4 md:grid-cols-[2fr_repeat(2,_1fr)]">
                     <Input
                       label="Novo item"
@@ -486,17 +430,15 @@ export function ListsPage() {
                   </div>
                 </form>
 
-                <div className="flex-1 overflow-hidden xl:min-h-0 flex flex-col">
+                <div className="flex flex-1 flex-col overflow-hidden xl:min-h-0">
                   {itemsLoading ? (
-                    <div className="mb-3 flex items-center justify-center gap-3 rounded-2xl border border-border/50 p-6 text-sm text-muted flex-shrink-0">
+                    <div className="mb-3 flex flex-shrink-0 items-center justify-center gap-3 rounded-2xl border border-border/40 p-6 text-sm text-muted">
                       <Loader2 className="h-4 w-4 animate-spin" /> Carregando itens...
                     </div>
                   ) : null}
 
                   <div
-                    className={cn(
-                      'space-y-3 flex-1 min-h-0 overflow-y-auto pr-1 scrollbar-thin',
-                    )}
+                    className="flex-1 space-y-3 overflow-y-auto pr-1"
                     style={isLargeScreen ? { maxHeight: 'calc(100vh - 480px)' } : { maxHeight: '50vh' }}
                   >
                     <AnimatePresence>
@@ -504,9 +446,9 @@ export function ListsPage() {
                         const isEditing = editingItemId === item.id
 
                         return (
-                      <motion.div
-                        key={item.id}
-                        className="flex flex-col gap-4 rounded-2xl border border-border/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+                          <motion.div
+                            key={item.id}
+                            className="flex flex-col gap-4 rounded-2xl border border-border/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
@@ -515,6 +457,8 @@ export function ListsPage() {
                               <form className="flex flex-1 flex-col gap-3" onSubmit={handleUpdateItem}>
                                 <div className="grid gap-3 sm:grid-cols-[2fr_repeat(2,_1fr)]">
                                   <Input
+                                    label="Nome do item"
+                                    placeholder="Ex: Leite integral"
                                     value={editItemForm.name}
                                     onChange={(event) =>
                                       setEditItemForm((state) => ({ ...state, name: event.target.value }))
@@ -522,12 +466,16 @@ export function ListsPage() {
                                     required
                                   />
                                   <Input
+                                    label="Quantidade"
+                                    placeholder="Ex: 2kg, 500ml"
                                     value={editItemForm.quantity}
                                     onChange={(event) =>
                                       setEditItemForm((state) => ({ ...state, quantity: event.target.value }))
                                     }
                                   />
                                   <Input
+                                    label="Observações"
+                                    placeholder="Marca, detalhes..."
                                     value={editItemForm.notes}
                                     onChange={(event) =>
                                       setEditItemForm((state) => ({ ...state, notes: event.target.value }))
@@ -564,20 +512,20 @@ export function ListsPage() {
                                     <Avatar src={item.createdByPhoto ?? null} alt={item.createdByName} size="sm" />
                                     <span>{item.createdByName}</span>
                                   </div>
-                              <div className="flex gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => handleStartEditItem(item)}>
-                                  Editar
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-danger-500 hover:text-danger-600"
-                                  onClick={() => handleDeleteItem(item.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
+                                  <div className="flex gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => handleStartEditItem(item)}>
+                                      Editar
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-danger-500 hover:text-danger-600"
+                                      onClick={() => requestDeleteItem(item)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </motion.div>
@@ -602,6 +550,54 @@ export function ListsPage() {
           </Card>
         ) : null}
       </div>
+
+      <Modal
+        open={Boolean(listModal)}
+        onClose={() => (!listModalLoading ? setListModal(null) : undefined)}
+        title={listModal?.mode === 'edit' ? 'Editar lista' : 'Nova lista'}
+        description={listModal?.mode === 'edit'
+          ? 'Atualize o nome e a descrição da lista selecionada.'
+          : 'Crie uma nova lista para organizar suas compras.'}
+      >
+        <form className="space-y-4" onSubmit={handleSubmitListModal}>
+          <Input
+            label="Nome da lista"
+            placeholder="Ex: Compras da semana"
+            value={listModalForm.name}
+            onChange={(event) => setListModalForm((form) => ({ ...form, name: event.target.value }))}
+            required
+          />
+          <Input
+            label="Descrição"
+            placeholder="Detalhes adicionais"
+            value={listModalForm.description}
+            onChange={(event) => setListModalForm((form) => ({ ...form, description: event.target.value }))}
+          />
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setListModal(null)} disabled={listModalLoading}>
+              Cancelar
+            </Button>
+            <Button type="submit" loading={listModalLoading}>
+              {listModal?.mode === 'edit' ? 'Salvar alterações' : 'Criar lista'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={Boolean(confirmState)}
+        onCancel={() => (!confirmLoading ? setConfirmState(null) : undefined)}
+        onConfirm={handleConfirmDelete}
+        loading={confirmLoading}
+        title={confirmState?.type === 'item' ? 'Remover item' : 'Remover lista'}
+        description={
+          confirmState?.type === 'item'
+            ? `Deseja remover "${confirmState.item.name}" desta lista?`
+            : `Deseja remover a lista "${confirmState?.title ?? ''}"? Essa ação excluirá todos os itens associados.`
+        }
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+      />
     </div>
   )
 }
