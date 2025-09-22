@@ -1,68 +1,117 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+@theme {
+  --color-background: #f5f7ff;
+  --color-surface: rgba(255, 255, 255, 0.9);
+  --color-card: rgba(255, 255, 255, 0.85);
+  --color-border: rgba(15, 23, 42, 0.06);
+  --color-foreground: #0f172a;
+  --color-muted: rgba(71, 85, 105, 0.72);
+  --color-primary-100: #e4e7ff;
+  --color-primary-200: #c7cffc;
+  --color-primary-300: #a5aff8;
+  --color-primary-400: #7b86f3;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-accent-400: #f472b6;
+  --color-accent-500: #ec4899;
+  --color-accent-600: #db2777;
+  --color-success-500: #16a34a;
+  --color-warning-500: #f59e0b;
+  --color-danger-500: #ef4444;
+  --color-overlay: rgba(15, 23, 42, 0.58);
+  --shadow-lg: 0 24px 48px rgba(15, 23, 42, 0.12);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color-scheme: light;
   }
+
+  body {
+    @apply bg-background text-foreground antialiased min-h-screen;
+    background-image: radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.18), transparent 55%),
+      radial-gradient(circle at 85% 10%, rgba(236, 72, 153, 0.16), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.28);
+    color: #0f172a;
+  }
+
+  a {
+    @apply text-primary-500 transition-colors;
+  }
+
   a:hover {
-    color: #747bff;
+    @apply text-primary-700;
   }
-  button {
-    background-color: #f9f9f9;
+
+  :where(.dark) {
+    --color-background: #0f172a;
+    --color-surface: rgba(17, 24, 39, 0.8);
+    --color-card: rgba(15, 23, 42, 0.78);
+    --color-border: rgba(148, 163, 184, 0.18);
+    --color-foreground: #f8fafc;
+    --color-muted: rgba(148, 163, 184, 0.72);
+    --color-overlay: rgba(15, 23, 42, 0.72);
+    --shadow-lg: 0 24px 48px rgba(15, 23, 42, 0.35);
+  }
+
+  :where(.dark) body {
+    @apply text-foreground;
+    background-image: radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.22), transparent 55%),
+      radial-gradient(circle at 80% 0%, rgba(236, 72, 153, 0.18), transparent 50%);
+  }
+
+  :where(.dark) ::selection {
+    background: rgba(99, 102, 241, 0.45);
+    color: #fff;
+  }
+
+  /* Custom Scrollbars */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.15);
+    border-radius: 3px;
+    transition: all 0.2s ease;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.3);
+  }
+
+  /* Dark Theme Scrollbars */
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(248, 250, 252, 0.2) !important;
+    background-color: rgba(248, 250, 252, 0.2) !important;
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(248, 250, 252, 0.4) !important;
+    background-color: rgba(248, 250, 252, 0.4) !important;
+  }
+
+  /* Fallback with hex colors for better Chrome support */
+  html.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #f8fafc33 !important;
+  }
+
+  html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #f8fafc66 !important;
   }
 }
