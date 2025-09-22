@@ -1,0 +1,17 @@
+{
+  "name": "Listas de compras",
+  "short_name": "Listas",
+  "description": "Organize suas compras de mercado de forma colaborativa em tempo real",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
