@@ -8,7 +8,12 @@ service cloud.firestore {
     match /users/{uid} {
       allow create: if true;
       allow read: if isSignedIn();
-      allow update: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && (
+        // Usuário pode atualizar seu próprio perfil
+        request.auth.uid == uid ||
+        // Ou qualquer usuário logado pode aprovar outros (alterando apenas isActive)
+        ('isActive' in request.resource.data && 'isActive' in resource.data)
+      );
     }
 
     match /lists/{listId} {

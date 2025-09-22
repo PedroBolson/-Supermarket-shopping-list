@@ -57,29 +57,45 @@ function mapItem(docSnapshot: QueryDocumentSnapshot<DocumentData>): ShoppingList
 export function listenLists(callback: (lists: ShoppingList[]) => void): Unsubscribe {
   const listsQuery = query(listsCollection, orderBy('createdAt', 'desc'))
 
-  return onSnapshot(listsQuery, (snapshot) => {
-    const lists = snapshot.docs.map(mapList)
-    callback(lists)
-  })
+  return onSnapshot(
+    listsQuery,
+    (snapshot) => {
+      const lists = snapshot.docs.map(mapList)
+      callback(lists)
+    },
+    (error) => {
+      console.error('Erro ao acessar listas:', error)
+      // Em caso de erro de permissão, retorna lista vazia
+      callback([])
+    }
+  )
 }
 
 export function listenListItems(listId: string, callback: (items: ShoppingListItem[]) => void): Unsubscribe {
   const itemsCollection = collection(db, 'lists', listId, 'items')
   const itemsQuery = query(itemsCollection, orderBy('createdAt', 'asc'))
 
-  return onSnapshot(itemsQuery, (snapshot) => {
-    const items = snapshot.docs.map(mapItem)
+  return onSnapshot(
+    itemsQuery,
+    (snapshot) => {
+      const items = snapshot.docs.map(mapItem)
 
-    // Ordenação no frontend: não comprados primeiro, depois comprados
-    const sortedItems = items.sort((a, b) => {
-      if (a.isPurchased !== b.isPurchased) {
-        return a.isPurchased ? 1 : -1
-      }
-      return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0)
-    })
+      // Ordenação no frontend: não comprados primeiro, depois comprados
+      const sortedItems = items.sort((a, b) => {
+        if (a.isPurchased !== b.isPurchased) {
+          return a.isPurchased ? 1 : -1
+        }
+        return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0)
+      })
 
-    callback(sortedItems)
-  })
+      callback(sortedItems)
+    },
+    (error) => {
+      console.error('Erro ao acessar itens da lista:', error)
+      // Em caso de erro de permissão, retorna lista vazia
+      callback([])
+    }
+  )
 }
 
 export async function createList(payload: {

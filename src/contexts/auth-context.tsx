@@ -77,9 +77,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setProfile(mappedProfile)
           setLoading(false)
         },
-        () => {
+        (error) => {
+          // Se houver erro de permissão ou qualquer outro erro, deslogar o usuário
+          console.error('Erro ao acessar dados do usuário:', error)
           setProfile(null)
+          setAuthUser(null)
           setLoading(false)
+          void signOut(auth)
         },
       )
     })

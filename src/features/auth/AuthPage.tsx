@@ -35,7 +35,7 @@ function normalizeErrorMessage(error: unknown): string {
     case 'auth/admin-restricted-operation':
       return 'O Firebase bloqueou esta operação. Verifique as permissões do projeto e tente novamente.'
     case 'permission-denied':
-      return 'O Firestore recusou a gravação. Confirme se as regras de segurança foram atualizadas e tente novamente.'
+      return 'Acesso negado. Sua conta pode estar aguardando aprovação ou você não tem permissão para acessar este recurso.'
     case 'auth/email-already-in-use':
       return 'Este email já está em uso. Utilize outro email ou faça login.'
     case 'auth/weak-password':
