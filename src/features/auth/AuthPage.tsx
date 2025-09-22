@@ -225,21 +225,21 @@ export function AuthPage() {
               <AnimatePresence mode="wait" initial={false}>
                 {mode === 'login' ? (
                   <LoginForm
-                  key={`login-${loginFormKey}`}
-                  formKey={`login-${loginFormKey}`}
-                  loading={loginLoading}
-                  onSubmit={handleLogin}
-                  onSwitchToRegister={switchToRegister}
-                  feedback={loginFeedback}
-                />
-              ) : (
-                <RegisterForm
-                  key={`register-${registerFormKey}`}
-                  formKey={`register-${registerFormKey}`}
-                  loading={registerLoading}
-                  onSubmit={handleRegister}
-                  onSwitchToLogin={switchToLogin}
-                  feedback={registerFeedback}
+                    key={`login-${loginFormKey}`}
+                    formKey={`login-${loginFormKey}`}
+                    loading={loginLoading}
+                    onSubmit={handleLogin}
+                    onSwitchToRegister={switchToRegister}
+                    feedback={loginFeedback}
+                  />
+                ) : (
+                  <RegisterForm
+                    key={`register-${registerFormKey}`}
+                    formKey={`register-${registerFormKey}`}
+                    loading={registerLoading}
+                    onSubmit={handleRegister}
+                    onSwitchToLogin={switchToLogin}
+                    feedback={registerFeedback}
                   />
                 )}
               </AnimatePresence>
