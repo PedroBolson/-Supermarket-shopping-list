@@ -1,15 +1,29 @@
 {
-  "name": "Listas de compras",
-  "short_name": "Listas",
-  "description": "Organize suas compras de mercado de forma colaborativa em tempo real",
+  "name": "Lista Mercado Inteligente",
+  "short_name": "Lista",
+  "description": "Organize suas compras de mercado em tempo real com uma experiência moderna e colaborativa.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#1f2937",
-  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
