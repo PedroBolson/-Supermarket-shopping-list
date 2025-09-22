@@ -4,11 +4,12 @@ import { cn } from '../../utils/cn'
 type AvatarProps = {
   src?: string | null
   alt?: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   className?: string
 }
 
 const sizeMap = {
+  xs: 'h-5 w-5 text-xs',
   sm: 'h-8 w-8 text-sm',
   md: 'h-10 w-10 text-base',
   lg: 'h-16 w-16 text-lg',
@@ -18,7 +19,7 @@ export function Avatar({ src, alt, size = 'md', className }: AvatarProps) {
   return (
     <div
       className={cn(
-        'relative inline-flex items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary-500/30 via-primary-500/15 to-accent-500/30 text-primary-600 dark:text-primary-50 shadow-[var(--shadow-lg)]',
+        'relative inline-flex items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary-500/30 via-primary-500/15 to-accent-500/30 text-primary-600 dark:text-primary-50',
         sizeMap[size],
         className,
       )}

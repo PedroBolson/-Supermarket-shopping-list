@@ -45,6 +45,10 @@ function mapItem(docSnapshot: QueryDocumentSnapshot<DocumentData>): ShoppingList
     createdByName: data.createdByName ?? '',
     createdByPhoto: data.createdByPhoto ?? null,
     isPurchased: Boolean(data.isPurchased),
+    purchasedBy: data.purchasedBy ?? null,
+    purchasedByName: data.purchasedByName ?? null,
+    purchasedByPhoto: data.purchasedByPhoto ?? null,
+    purchasedAt: data.purchasedAt?.toDate?.() ?? null,
     createdAt: data.createdAt?.toDate?.() ?? undefined,
     updatedAt: data.updatedAt?.toDate?.() ?? undefined,
   }
@@ -65,7 +69,16 @@ export function listenListItems(listId: string, callback: (items: ShoppingListIt
 
   return onSnapshot(itemsQuery, (snapshot) => {
     const items = snapshot.docs.map(mapItem)
-    callback(items)
+
+    // Ordenação no frontend: não comprados primeiro, depois comprados
+    const sortedItems = items.sort((a, b) => {
+      if (a.isPurchased !== b.isPurchased) {
+        return a.isPurchased ? 1 : -1
+      }
+      return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0)
+    })
+
+    callback(sortedItems)
   })
 }
 
@@ -147,13 +160,32 @@ export async function updateListItem(
 
 export async function toggleItemPurchased(listId: string, itemId: string, purchased: boolean, user: UserProfile) {
   const itemDoc = doc(db, 'lists', listId, 'items', itemId)
-  await updateDoc(itemDoc, {
+
+  const updateData: {
+    isPurchased: boolean
+    updatedAt: ReturnType<typeof serverTimestamp>
+    purchasedBy?: string | null
+    purchasedByName?: string | null
+    purchasedByPhoto?: string | null
+    purchasedAt?: ReturnType<typeof serverTimestamp> | null
+  } = {
     isPurchased: purchased,
     updatedAt: serverTimestamp(),
-    lastUpdatedBy: user.uid,
-    lastUpdatedByName: user.name,
-    lastUpdatedByPhoto: user.photoURL ?? null,
-  })
+  }
+
+  if (purchased) {
+    updateData.purchasedBy = user.uid
+    updateData.purchasedByName = user.name
+    updateData.purchasedByPhoto = user.photoURL ?? null
+    updateData.purchasedAt = serverTimestamp()
+  } else {
+    updateData.purchasedBy = null
+    updateData.purchasedByName = null
+    updateData.purchasedByPhoto = null
+    updateData.purchasedAt = null
+  }
+
+  await updateDoc(itemDoc, updateData)
 }
 
 export async function deleteListItem(listId: string, itemId: string) {

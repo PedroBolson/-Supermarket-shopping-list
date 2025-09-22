@@ -19,6 +19,10 @@ export type ShoppingListItem = {
   createdByName?: string
   createdByPhoto?: string | null
   isPurchased: boolean
+  purchasedBy?: string | null
+  purchasedByName?: string | null
+  purchasedByPhoto?: string | null
+  purchasedAt?: Date | null
   createdAt?: Date
   updatedAt?: Date
 }

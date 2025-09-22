@@ -54,10 +54,11 @@ export function ListsPage() {
       setLists(data)
       setListLoading(false)
       setSelectedListId((current) => {
+        // Só manter a lista atual se ela ainda existir, sem selecionar automaticamente
         if (current && data.some((list) => list.id === current)) {
           return current
         }
-        return data[0]?.id ?? null
+        return null
       })
     })
 
@@ -91,6 +92,7 @@ export function ListsPage() {
       return
     }
 
+    // No mobile, sempre iniciar com 'lists' se não há lista selecionada
     setActiveView(selectedListId ? 'items' : 'lists')
   }, [selectedListId, isLargeScreen])
 
@@ -308,7 +310,7 @@ export function ListsPage() {
             <div
               className={cn(
                 'space-y-3',
-                isLargeScreen && 'xl:flex-1 xl:min-h-0 xl:overflow-y-auto xl:pr-1',
+                isLargeScreen && 'xl:flex-1 xl:min-h-0 xl:overflow-y-auto xl:pr-1 scrollbar-thin',
               )}
               style={isLargeScreen ? { maxHeight: 'calc(100vh - 340px)' } : undefined}
             >
@@ -438,8 +440,11 @@ export function ListsPage() {
                   ) : null}
 
                   <div
-                    className="flex-1 space-y-3 overflow-y-auto pr-1"
-                    style={isLargeScreen ? { maxHeight: 'calc(100vh - 480px)' } : { maxHeight: '50vh' }}
+                    className={cn(
+                      'flex-1 space-y-3',
+                      isLargeScreen && 'overflow-y-auto pr-1 scrollbar-thin'
+                    )}
+                    style={isLargeScreen ? { maxHeight: 'calc(100vh - 480px)' } : undefined}
                   >
                     <AnimatePresence>
                       {items.map((item) => {
@@ -448,7 +453,12 @@ export function ListsPage() {
                         return (
                           <motion.div
                             key={item.id}
-                            className="flex flex-col gap-4 rounded-2xl border border-border/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+                            className={cn(
+                              "rounded-2xl border bg-card p-4 transition-all",
+                              item.isPurchased
+                                ? "border-border/20 bg-card/50 opacity-75"
+                                : "border-border/40 bg-card hover:border-primary-200/60"
+                            )}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
@@ -492,39 +502,66 @@ export function ListsPage() {
                                 </div>
                               </form>
                             ) : (
-                              <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                                <div className="flex items-center gap-3">
-                                  <Checkbox checked={item.isPurchased} onChange={() => handleToggleItem(item)} />
-                                  <div>
-                                    <p className="text-sm font-semibold text-foreground">
+                              <div className="flex flex-1 items-center gap-4">
+                                <Checkbox checked={item.isPurchased} onChange={() => handleToggleItem(item)} />
+
+                                <div className="flex flex-1 flex-col gap-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className={cn(
+                                      "text-sm font-medium transition-all",
+                                      item.isPurchased
+                                        ? "text-muted line-through"
+                                        : "text-foreground"
+                                    )}>
                                       {item.name}
-                                      {item.quantity ? (
-                                        <span className="ml-2 text-xs font-normal text-muted">{item.quantity}</span>
-                                      ) : null}
                                     </p>
-                                    {item.notes ? (
-                                      <p className="text-xs text-muted">{item.notes}</p>
-                                    ) : null}
+                                    {item.quantity && (
+                                      <span className="rounded-full bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 shadow-[0_6px_15px_rgba(99,102,241,0.2)] backdrop-blur dark:bg-primary-500/25 dark:text-primary-100">
+                                        {item.quantity}
+                                      </span>
+                                    )}
+                                    {item.isPurchased && (
+                                      <span className="rounded-md bg-success-100 px-2 py-0.5 text-xs font-medium text-success-700 dark:bg-success-900/30 dark:text-success-300">
+                                        ✓ Comprado
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex flex-col gap-2 text-xs text-muted sm:flex-row sm:items-center sm:gap-4">
+                                    {item.notes && (
+                                      <span className={item.isPurchased ? "line-through" : ""}>
+                                        {item.notes}
+                                      </span>
+                                    )}
+
+                                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+                                      <div className="flex items-center gap-1.5">
+                                        <Avatar src={item.createdByPhoto ?? null} alt={item.createdByName} size="xs" />
+                                        <span>Adicionado por {item.createdByName}</span>
+                                      </div>
+
+                                      {item.isPurchased && item.purchasedByName && (
+                                        <div className="flex items-center gap-1.5">
+                                          <Avatar src={item.purchasedByPhoto ?? null} alt={item.purchasedByName} size="xs" />
+                                          <span>Comprado por {item.purchasedByName}</span>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="flex flex-1 items-center justify-end gap-3">
-                                  <div className="flex items-center gap-2 text-xs text-muted">
-                                    <Avatar src={item.createdByPhoto ?? null} alt={item.createdByName} size="sm" />
-                                    <span>{item.createdByName}</span>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Button variant="ghost" size="sm" onClick={() => handleStartEditItem(item)}>
-                                      Editar
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-danger-500 hover:text-danger-600"
-                                      onClick={() => requestDeleteItem(item)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
+
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="sm" onClick={() => handleStartEditItem(item)}>
+                                    <Edit3 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-danger-500 hover:text-danger-600"
+                                    onClick={() => requestDeleteItem(item)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
                                 </div>
                               </div>
                             )}

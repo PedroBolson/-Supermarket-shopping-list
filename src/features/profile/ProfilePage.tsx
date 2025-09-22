@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { updateProfile } from 'firebase/auth'
 import { Camera, Check, Loader2, ShieldCheck } from 'lucide-react'
-import { Button, Card, Input, Avatar, TextArea } from '../../components/ui'
+import { Button, Card, Input, Avatar } from '../../components/ui'
 import { useAuth } from '../../hooks/use-auth'
 import { uploadAvatar, updateUserProfileDocument } from './services'
 
@@ -11,7 +11,6 @@ type Feedback = { type: 'success' | 'error'; message: string }
 export function ProfilePage() {
   const { profile, authUser } = useAuth()
   const [displayName, setDisplayName] = useState(profile?.name ?? '')
-  const [bio, setBio] = useState('')
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -20,8 +19,7 @@ export function ProfilePage() {
 
   useEffect(() => {
     setDisplayName(profile?.name ?? '')
-    setBio(profile?.bio ?? '')
-  }, [profile?.name, profile?.bio])
+  }, [profile?.name])
 
   const statusLabel = useMemo(() => (profile?.isActive ? 'Acesso liberado' : 'Aguardando aprovação'), [
     profile?.isActive,
@@ -41,7 +39,7 @@ export function ProfilePage() {
 
     try {
       setSaving(true)
-      await updateUserProfileDocument(profile.uid, { name: displayName.trim(), bio: bio.trim() })
+      await updateUserProfileDocument(profile.uid, { name: displayName.trim() })
       await updateProfile(authUser, { displayName: displayName.trim() })
       setFeedback({ type: 'success', message: 'Perfil atualizado com sucesso.' })
     } catch (error) {
@@ -115,16 +113,15 @@ export function ProfilePage() {
 
       {feedback ? (
         <div
-          className={`rounded-3xl border border-border/50 bg-card/70 px-4 py-3 text-sm ${
-            feedback.type === 'error' ? 'text-danger-500' : 'text-success-500'
-          }`}
+          className={`rounded-3xl border border-border/50 bg-card/70 px-4 py-3 text-sm ${feedback.type === 'error' ? 'text-danger-500' : 'text-success-500'
+            }`}
         >
           {feedback.message}
         </div>
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <Card className="flex flex-col items-center gap-6 text-center">
+        <Card className="flex flex-col items-center gap-5 text-center py-6">
           <div className="relative">
             <Avatar src={profile.photoURL ?? null} alt={profile.name} size="lg" className="h-28 w-28" />
             <button
@@ -152,6 +149,11 @@ export function ProfilePage() {
         </Card>
 
         <Card className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium text-foreground mb-1">Informações pessoais</h3>
+            <p className="text-sm text-muted mb-4">Atualize seus dados básicos abaixo.</p>
+          </div>
+
           <form className="space-y-4" onSubmit={handleSaveProfile}>
             <div className="grid gap-4 md:grid-cols-2">
               <Input
@@ -162,28 +164,13 @@ export function ProfilePage() {
               />
               <Input label="Email" value={profile.email} disabled />
             </div>
-            <TextArea
-              label="Bio"
-              hint="Conte um pouco sobre você para o time."
-              value={bio}
-              onChange={(event) => setBio(event.target.value)}
-            />
-            <div className="flex justify-end gap-3">
-              <Button type="submit" loading={saving}>
-                <Check className="h-4 w-4" />
-                Salvar alterações
+            <div className="flex justify-end">
+              <Button type="submit" loading={saving} size="sm" variant="outline">
+                <Check className="h-3 w-3" />
+                Salvar
               </Button>
             </div>
           </form>
-
-          <div className="rounded-2xl border border-border/40 bg-card p-4 text-sm text-muted dark:border-border/60 dark:bg-card/70">
-            <p className="font-semibold text-foreground">Status do acesso</p>
-            <p className="mt-2">
-              {profile.isActive
-                ? 'Parabéns! Seu acesso está ativo. Continue colaborando com as listas em tempo real.'
-                : 'Seu acesso está aguardando aprovação. Assim que um responsável autorizar você receberá liberação automática.'}
-            </p>
-          </div>
         </Card>
       </div>
     </div>
