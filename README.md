@@ -3,9 +3,7 @@
 <div align="center">
   <img src="public/icons/icon-192.svg" alt="Lista Mercado Logo" width="120" height="120">
   
-  ### 🚀 Aplicação web colaborat## 🗄️ Modelo de Dados
-
-### 📊 Estrutura Firestore
+  ### 🗄️ Modelo de Dados
 
 ```mermaid
 erDiagram
@@ -101,14 +99,6 @@ match /avatars/{userId}/{allPaths=**} {
 </div>
 
 ---
-
-## 📱 Preview
-
-<div align="center">
-  <img src="https://via.placeholder.com/800x400/1a1a2e/eee?text=🛒+Lista+Mercado+Preview" alt="App Preview" width="100%">
-  
-  *Interface moderna com tema escuro/claro, animações suaves e colaboração em tempo real*
-</div>
 
 ## ✨ Visão Geral
 
