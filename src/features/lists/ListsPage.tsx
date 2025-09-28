@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Plus, Sparkles, Trash2, Edit3, Loader2 } from 'lucide-react'
 import { useAuth } from '../../hooks/use-auth'
 import { Avatar, Button, Card, Checkbox, Input, Modal } from '../../components/ui'
 import { ConfirmDialog } from '../../components/feedback'
+import { AddItemForm, ItemSearchField } from './components'
 import type { ShoppingList, ShoppingListItem } from '../../types'
 import {
   createList,
@@ -34,9 +35,10 @@ export function ListsPage() {
   const [lists, setLists] = useState<ShoppingList[]>([])
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [items, setItems] = useState<ShoppingListItem[]>([])
+  const [filteredItems, setFilteredItems] = useState<ShoppingListItem[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [itemsLoading, setItemsLoading] = useState(false)
-  const [itemForm, setItemForm] = useState({ name: '', quantity: '', notes: '' })
+  const [addingItem, setAddingItem] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editItemForm, setEditItemForm] = useState({ name: '', quantity: '', notes: '' })
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null)
@@ -68,6 +70,7 @@ export function ListsPage() {
   useEffect(() => {
     if (!selectedListId) {
       setItems([])
+      setFilteredItems([])
       return
     }
 
@@ -75,6 +78,7 @@ export function ListsPage() {
 
     const unsubscribe = listenListItems(selectedListId, (data) => {
       setItems(data)
+      setFilteredItems(data)
       setItemsLoading(false)
     })
 
@@ -115,6 +119,10 @@ export function ListsPage() {
   )
 
   const purchasedCount = useMemo(() => items.filter((item) => item.isPurchased).length, [items])
+
+  const handleItemsFiltered = useCallback((filtered: ShoppingListItem[]) => {
+    setFilteredItems(filtered)
+  }, [])
   const showListsPanel = isLargeScreen || activeView === 'lists'
   const showItemsPanel = isLargeScreen || activeView === 'items'
 
@@ -152,29 +160,36 @@ export function ListsPage() {
     }
   }
 
-  const handleAddItem = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!profile || !selectedListId) return
+  const handleAddItem = useCallback(async (formData: { name: string; quantity: string; notes: string }) => {
+    if (!profile || !selectedListId) {
+      throw new Error('Dados de usuário ou lista não encontrados')
+    }
 
-    if (!itemForm.name.trim()) {
+    if (!formData.name.trim()) {
       setFeedback({ type: 'error', message: 'Informe o nome do item.' })
-      return
+      throw new Error('Nome do item é obrigatório')
     }
 
     try {
       setFeedback(null)
+      setAddingItem(true)
+
       await createListItem(selectedListId, {
-        name: itemForm.name.trim(),
-        quantity: itemForm.quantity.trim(),
-        notes: itemForm.notes.trim(),
+        name: formData.name,
+        quantity: formData.quantity,
+        notes: formData.notes,
         user: profile,
       })
-      setItemForm({ name: '', quantity: '', notes: '' })
+
+      setFeedback({ type: 'success', message: 'Item adicionado com sucesso!' })
     } catch (error) {
       console.error(error)
       setFeedback({ type: 'error', message: 'Não foi possível adicionar o item.' })
+      throw error
+    } finally {
+      setAddingItem(false)
     }
-  }
+  }, [profile, selectedListId])
 
   const handleToggleItem = async (item: ShoppingListItem) => {
     if (!profile || !selectedListId) return
@@ -400,37 +415,16 @@ export function ListsPage() {
                   <StatusCard title="Pendentes" value={items.length - purchasedCount} subtitle="Restantes" />
                 </div>
 
-                <form className="grid gap-4 rounded-2xl border border-border/40 bg-card p-4" onSubmit={handleAddItem}>
-                  <div className="grid gap-4 md:grid-cols-[2fr_repeat(2,_1fr)]">
-                    <Input
-                      label="Novo item"
-                      placeholder="O que vamos comprar?"
-                      value={itemForm.name}
-                      onChange={(event) => setItemForm((state) => ({ ...state, name: event.target.value }))}
-                      required
-                    />
-                    <Input
-                      label="Quantidade"
-                      placeholder="Ex: 2kg"
-                      value={itemForm.quantity}
-                      onChange={(event) =>
-                        setItemForm((state) => ({ ...state, quantity: event.target.value }))
-                      }
-                    />
-                    <Input
-                      label="Observações"
-                      placeholder="Detalhes importantes"
-                      value={itemForm.notes}
-                      onChange={(event) => setItemForm((state) => ({ ...state, notes: event.target.value }))}
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <Button type="submit" size="sm">
-                      <Plus className="h-4 w-4" />
-                      Adicionar
-                    </Button>
-                  </div>
-                </form>
+                <AddItemForm
+                  onSubmit={handleAddItem}
+                  isLoading={addingItem}
+                />
+
+                <ItemSearchField
+                  items={items}
+                  onItemsFiltered={handleItemsFiltered}
+                  className="-mt-2"
+                />
 
                 <div className="flex flex-1 flex-col overflow-hidden xl:min-h-0">
                   {itemsLoading ? (
@@ -447,7 +441,7 @@ export function ListsPage() {
                     style={isLargeScreen ? { maxHeight: 'calc(100vh - 480px)' } : undefined}
                   >
                     <AnimatePresence>
-                      {items.map((item) => {
+                      {filteredItems.map((item) => {
                         const isEditing = editingItemId === item.id
 
                         return (
@@ -570,9 +564,12 @@ export function ListsPage() {
                       })}
                     </AnimatePresence>
 
-                    {!items.length && !itemsLoading ? (
+                    {!filteredItems.length && !itemsLoading ? (
                       <div className="rounded-2xl border border-dashed border-border/40 p-8 text-center text-sm text-muted">
-                        Comece adicionando os itens desta lista.
+                        {!items.length
+                          ? 'Comece adicionando os itens desta lista.'
+                          : 'Nenhum item encontrado com os filtros aplicados.'
+                        }
                       </div>
                     ) : null}
                   </div>

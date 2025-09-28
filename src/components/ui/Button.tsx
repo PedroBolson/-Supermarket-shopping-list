@@ -23,9 +23,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-3 py-2 text-sm',
-  md: 'px-4 py-3 text-sm md:text-base',
-  lg: 'px-5 py-4 text-base md:text-lg',
+  sm: 'px-4 py-2.5 text-sm',
+  md: 'px-5 py-3 text-sm md:text-base',
+  lg: 'px-6 py-4 text-base md:text-lg',
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -33,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        'relative inline-flex cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl font-medium transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none',
+        'relative inline-flex cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-xl font-medium transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none whitespace-nowrap flex-shrink-0 min-w-0',
         variantClasses[variant],
         sizeClasses[size],
         className,
@@ -41,7 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled={disabled ?? loading}
       {...props}
     >
-      <span className={cn('transition-opacity', loading && 'opacity-0')}>{children}</span>
+      <span className={cn('inline-flex items-center gap-1.5 transition-opacity', loading && 'opacity-0')}>{children}</span>
       {loading ? (
         <span className="absolute inset-y-0 inline-flex items-center justify-center">
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-transparent" />
