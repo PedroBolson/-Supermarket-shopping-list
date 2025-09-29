@@ -243,9 +243,9 @@ export function ListsPage() {
 
   const requestClearAllItems = () => {
     if (!selectedList || items.length === 0) return
-    setConfirmState({ 
-      type: 'clearAllItems', 
-      listId: selectedList.id, 
+    setConfirmState({
+      type: 'clearAllItems',
+      listId: selectedList.id,
       title: selectedList.name,
       itemCount: items.length
     })
@@ -651,8 +651,8 @@ export function ListsPage() {
         onConfirm={handleConfirmDelete}
         loading={confirmLoading}
         title={
-          confirmState?.type === 'item' 
-            ? 'Remover item' 
+          confirmState?.type === 'item'
+            ? 'Remover item'
             : confirmState?.type === 'clearAllItems'
               ? 'Limpar todos os itens'
               : 'Remover lista'
