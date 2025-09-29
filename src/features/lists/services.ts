@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
@@ -218,5 +219,20 @@ export async function deleteAllListItems(listId: string) {
     batch.delete(itemDoc.ref)
   })
 
+  await batch.commit()
+}
+
+export async function deleteCompletedListItems(listId: string) {
+  const itemsCollection = collection(db, 'lists', listId, 'items')
+  const completedItemsQuery = query(itemsCollection, where('isPurchased', '==', true))
+  const snapshot = await getDocs(completedItemsQuery)
+  
+  if (snapshot.empty) return
+  
+  const batch = writeBatch(db)
+  snapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref)
+  })
+  
   await batch.commit()
 }

@@ -10,6 +10,7 @@ import {
   createList,
   createListItem,
   deleteAllListItems,
+  deleteCompletedListItems,
   deleteList,
   deleteListItem,
   listenListItems,
@@ -31,6 +32,7 @@ type ConfirmState =
   | { type: 'list'; listId: string; title: string }
   | { type: 'item'; listId: string; item: ShoppingListItem }
   | { type: 'clearAllItems'; listId: string; title: string; itemCount: number }
+  | { type: 'clearCompletedItems'; listId: string; title: string; completedCount: number }
 
 export function ListsPage() {
   const { profile } = useAuth()
@@ -251,6 +253,16 @@ export function ListsPage() {
     })
   }
 
+  const requestClearCompletedItems = () => {
+    if (!selectedList || purchasedCount === 0) return
+    setConfirmState({
+      type: 'clearCompletedItems',
+      listId: selectedList.id,
+      title: selectedList.name,
+      completedCount: purchasedCount
+    })
+  }
+
   const handleConfirmDelete = async () => {
     if (!confirmState) return
     setConfirmLoading(true)
@@ -263,6 +275,9 @@ export function ListsPage() {
       } else if (confirmState.type === 'clearAllItems') {
         await deleteAllListItems(confirmState.listId)
         setFeedback({ type: 'success', message: `Todos os ${confirmState.itemCount} itens foram removidos.` })
+      } else if (confirmState.type === 'clearCompletedItems') {
+        await deleteCompletedListItems(confirmState.listId)
+        setFeedback({ type: 'success', message: `${confirmState.completedCount} itens comprados foram removidos.` })
       }
       setConfirmState(null)
     } catch (error) {
@@ -412,6 +427,18 @@ export function ListsPage() {
                       <Edit3 className="h-4 w-4" />
                       Editar
                     </Button>
+                    {purchasedCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-success-600 hover:text-success-700 dark:text-success-400 dark:hover:text-success-300"
+                        onClick={requestClearCompletedItems}
+                        title={`Remover ${purchasedCount} itens comprados`}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Limpar comprados
+                      </Button>
+                    )}
                     {items.length > 0 && (
                       <Button
                         variant="ghost"
@@ -655,17 +682,25 @@ export function ListsPage() {
             ? 'Remover item'
             : confirmState?.type === 'clearAllItems'
               ? 'Limpar todos os itens'
-              : 'Remover lista'
+              : confirmState?.type === 'clearCompletedItems'
+                ? 'Limpar itens comprados'
+                : 'Remover lista'
         }
         description={
           confirmState?.type === 'item'
             ? `Deseja remover "${confirmState.item.name}" desta lista?`
             : confirmState?.type === 'clearAllItems'
               ? `Deseja remover todos os ${confirmState.itemCount} itens da lista "${confirmState.title}"? Esta ação não pode ser desfeita.`
-              : `Deseja remover a lista "${confirmState?.title ?? ''}"? Essa ação excluirá todos os itens associados.`
+              : confirmState?.type === 'clearCompletedItems'
+                ? `Deseja remover os ${confirmState.completedCount} itens já comprados da lista "${confirmState.title}"? Esta ação não pode ser desfeita.`
+                : `Deseja remover a lista "${confirmState?.title ?? ''}"? Essa ação excluirá todos os itens associados.`
         }
         confirmLabel={
-          confirmState?.type === 'clearAllItems' ? 'Limpar todos' : 'Remover'
+          confirmState?.type === 'clearAllItems'
+            ? 'Limpar todos'
+            : confirmState?.type === 'clearCompletedItems'
+              ? 'Limpar comprados'
+              : 'Remover'
         }
         cancelLabel="Cancelar"
       />
