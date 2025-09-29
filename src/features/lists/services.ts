@@ -208,3 +208,15 @@ export async function deleteListItem(listId: string, itemId: string) {
   const itemDoc = doc(db, 'lists', listId, 'items', itemId)
   await deleteDoc(itemDoc)
 }
+
+export async function deleteAllListItems(listId: string) {
+  const itemsCollection = collection(db, 'lists', listId, 'items')
+  const itemsSnapshot = await getDocs(itemsCollection)
+  const batch = writeBatch(db)
+
+  itemsSnapshot.forEach((itemDoc) => {
+    batch.delete(itemDoc.ref)
+  })
+
+  await batch.commit()
+}

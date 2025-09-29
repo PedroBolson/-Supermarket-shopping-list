@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, Plus, Sparkles, Trash2, Edit3, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, Sparkles, Trash2, Edit3, Loader2, Eraser } from 'lucide-react'
 import { useAuth } from '../../hooks/use-auth'
 import { Avatar, Button, Card, Checkbox, Input, Modal } from '../../components/ui'
 import { ConfirmDialog } from '../../components/feedback'
@@ -9,6 +9,7 @@ import type { ShoppingList, ShoppingListItem } from '../../types'
 import {
   createList,
   createListItem,
+  deleteAllListItems,
   deleteList,
   deleteListItem,
   listenListItems,
@@ -29,6 +30,7 @@ type ListModalState = { mode: 'create' } | { mode: 'edit'; list: ShoppingList }
 type ConfirmState =
   | { type: 'list'; listId: string; title: string }
   | { type: 'item'; listId: string; item: ShoppingListItem }
+  | { type: 'clearAllItems'; listId: string; title: string; itemCount: number }
 
 export function ListsPage() {
   const { profile } = useAuth()
@@ -239,6 +241,16 @@ export function ListsPage() {
     setConfirmState({ type: 'item', listId: selectedListId, item })
   }
 
+  const requestClearAllItems = () => {
+    if (!selectedList || items.length === 0) return
+    setConfirmState({ 
+      type: 'clearAllItems', 
+      listId: selectedList.id, 
+      title: selectedList.name,
+      itemCount: items.length
+    })
+  }
+
   const handleConfirmDelete = async () => {
     if (!confirmState) return
     setConfirmLoading(true)
@@ -246,8 +258,11 @@ export function ListsPage() {
       if (confirmState.type === 'list') {
         await deleteList(confirmState.listId)
         setFeedback({ type: 'success', message: 'Lista removida com sucesso.' })
-      } else {
+      } else if (confirmState.type === 'item') {
         await deleteListItem(confirmState.listId, confirmState.item.id)
+      } else if (confirmState.type === 'clearAllItems') {
+        await deleteAllListItems(confirmState.listId)
+        setFeedback({ type: 'success', message: `Todos os ${confirmState.itemCount} itens foram removidos.` })
       }
       setConfirmState(null)
     } catch (error) {
@@ -385,18 +400,30 @@ export function ListsPage() {
           >
             {selectedList ? (
               <div className="flex flex-1 flex-col gap-4 overflow-hidden">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex-1">
                     <h2 className="text-2xl font-semibold text-foreground">{selectedList.name}</h2>
                     {selectedList.description ? (
                       <p className="mt-1 text-sm text-muted">{selectedList.description}</p>
                     ) : null}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                     <Button variant="ghost" size="sm" onClick={openEditListModal}>
                       <Edit3 className="h-4 w-4" />
                       Editar
                     </Button>
+                    {items.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+                        onClick={requestClearAllItems}
+                        title={`Remover todos os ${items.length} itens`}
+                      >
+                        <Eraser className="h-4 w-4" />
+                        Limpar itens
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -404,7 +431,7 @@ export function ListsPage() {
                       onClick={requestDeleteList}
                     >
                       <Trash2 className="h-4 w-4" />
-                      Remover
+                      Remover lista
                     </Button>
                   </div>
                 </div>
@@ -623,13 +650,23 @@ export function ListsPage() {
         onCancel={() => (!confirmLoading ? setConfirmState(null) : undefined)}
         onConfirm={handleConfirmDelete}
         loading={confirmLoading}
-        title={confirmState?.type === 'item' ? 'Remover item' : 'Remover lista'}
+        title={
+          confirmState?.type === 'item' 
+            ? 'Remover item' 
+            : confirmState?.type === 'clearAllItems'
+              ? 'Limpar todos os itens'
+              : 'Remover lista'
+        }
         description={
           confirmState?.type === 'item'
             ? `Deseja remover "${confirmState.item.name}" desta lista?`
-            : `Deseja remover a lista "${confirmState?.title ?? ''}"? Essa ação excluirá todos os itens associados.`
+            : confirmState?.type === 'clearAllItems'
+              ? `Deseja remover todos os ${confirmState.itemCount} itens da lista "${confirmState.title}"? Esta ação não pode ser desfeita.`
+              : `Deseja remover a lista "${confirmState?.title ?? ''}"? Essa ação excluirá todos os itens associados.`
         }
-        confirmLabel="Remover"
+        confirmLabel={
+          confirmState?.type === 'clearAllItems' ? 'Limpar todos' : 'Remover'
+        }
         cancelLabel="Cancelar"
       />
     </div>
