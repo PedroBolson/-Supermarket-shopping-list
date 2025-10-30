@@ -1,0 +1,9 @@
+{
+    "name": "scripts",
+    "version": "1.0.0",
+    "description": "Scripts administrativos",
+    "type": "commonjs",
+    "dependencies": {
+        "firebase-admin": "^12.0.0"
+    }
+}

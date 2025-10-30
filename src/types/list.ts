@@ -1,5 +1,6 @@
 export type ShoppingList = {
   id: string
+  accountId: string
   name: string
   description?: string | null
   createdBy: string

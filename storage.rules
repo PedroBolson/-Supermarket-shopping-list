@@ -5,15 +5,75 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    match /avatars/{userId}/{allPaths=**} {
-      allow read: if isSignedIn();
-      allow write: if request.auth != null && request.auth.uid == userId
-        && request.resource.size < 15 * 1024 * 1024
-        && request.resource.contentType.matches('image/.+');
+    function isMaster() {
+      return isSignedIn() && request.auth.token.master == true;
     }
 
-    match /{allPaths=**} {
-      allow read, write: if false;
+    function isAccountMember(accountId) {
+      return isSignedIn() && (
+        request.auth.token.accountIds != null &&
+        accountId in request.auth.token.accountIds
+      );
+    }
+
+    function hasActiveMembership(accountId) {
+      return isSignedIn() && 
+        firestore.get(/databases/(default)/documents/accountMembers/$(accountId)/members/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function getAccountLimits(accountId) {
+      return firestore.get(/databases/(default)/documents/accounts/$(accountId)).data.limits;
+    }
+
+    function getCurrentStorage(accountId) {
+      return firestore.get(/databases/(default)/documents/accounts/$(accountId)).data.metrics.currentStorageMB;
+    }
+
+    function withinStorageLimit(accountId, fileSize) {
+      let limits = getAccountLimits(accountId);
+      let currentMB = getCurrentStorage(accountId);
+      let fileMB = fileSize / 1048576;
+      return (currentMB + fileMB) <= limits.maxStorageMB;
+    }
+
+    match /accounts/{accountId}/avatars/{fileName} {
+      allow read: if isSignedIn() && (
+        isMaster() ||
+        isAccountMember(accountId)
+      );
+      allow write: if isSignedIn() && (
+        isMaster() ||
+        (isAccountMember(accountId) && 
+         hasActiveMembership(accountId) &&
+         withinStorageLimit(accountId, request.resource.size))
+      );
+      allow delete: if isSignedIn() && (
+        isMaster() ||
+        isAccountMember(accountId)
+      );
+    }
+
+    match /accounts/{accountId}/lists/{listId}/{fileName} {
+      allow read: if isSignedIn() && (
+        isMaster() ||
+        isAccountMember(accountId)
+      );
+      allow write: if isSignedIn() && (
+        isMaster() ||
+        (isAccountMember(accountId) && 
+         hasActiveMembership(accountId) &&
+         withinStorageLimit(accountId, request.resource.size))
+      );
+      allow delete: if isSignedIn() && (
+        isMaster() ||
+        isAccountMember(accountId)
+      );
+    }
+
+    match /users/{uid}/profile/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
   }
 }

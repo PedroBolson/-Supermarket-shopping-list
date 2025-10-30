@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Plus, Sparkles, Trash2, Edit3, Loader2, Eraser } from 'lucide-react'
 import { useAuth } from '../../hooks/use-auth'
+import { useAuthContext } from '../../contexts/auth-context'
 import { Avatar, Button, Card, Checkbox, Input, Modal } from '../../components/ui'
 import { ConfirmDialog } from '../../components/feedback'
 import { AddItemForm, ItemSearchField } from './components'
@@ -36,6 +37,7 @@ type ConfirmState =
 
 export function ListsPage() {
   const { profile } = useAuth()
+  const { currentAccount } = useAuthContext()
   const [lists, setLists] = useState<ShoppingList[]>([])
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [items, setItems] = useState<ShoppingListItem[]>([])
@@ -132,7 +134,7 @@ export function ListsPage() {
 
   const handleSubmitListModal = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!profile || !listModal) return
+    if (!profile || !listModal || !currentAccount) return
 
     if (!listModalForm.name.trim()) {
       setFeedback({ type: 'error', message: 'O nome da lista é obrigatório.' })
@@ -145,6 +147,7 @@ export function ListsPage() {
         await createList({
           name: listModalForm.name.trim(),
           description: listModalForm.description.trim(),
+          accountId: currentAccount.id,
           owner: profile,
         })
         setFeedback({ type: 'success', message: 'Lista criada com sucesso!' })

@@ -23,6 +23,7 @@ function mapList(docSnapshot: QueryDocumentSnapshot<DocumentData>): ShoppingList
 
   return {
     id: docSnapshot.id,
+    accountId: data.accountId ?? '',
     name: data.name ?? 'Lista sem nome',
     description: data.description ?? '',
     createdBy: data.createdBy ?? '',
@@ -102,9 +103,11 @@ export function listenListItems(listId: string, callback: (items: ShoppingListIt
 export async function createList(payload: {
   name: string
   description?: string | null
+  accountId: string
   owner: UserProfile
 }) {
   await addDoc(listsCollection, {
+    accountId: payload.accountId,
     name: payload.name,
     description: payload.description ?? '',
     createdBy: payload.owner.uid,
@@ -226,13 +229,13 @@ export async function deleteCompletedListItems(listId: string) {
   const itemsCollection = collection(db, 'lists', listId, 'items')
   const completedItemsQuery = query(itemsCollection, where('isPurchased', '==', true))
   const snapshot = await getDocs(completedItemsQuery)
-  
+
   if (snapshot.empty) return
-  
+
   const batch = writeBatch(db)
   snapshot.docs.forEach((doc) => {
     batch.delete(doc.ref)
   })
-  
+
   await batch.commit()
 }

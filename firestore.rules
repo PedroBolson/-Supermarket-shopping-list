@@ -5,23 +5,134 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    match /users/{uid} {
-      allow create: if true;
-      allow read: if isSignedIn();
-      allow update: if request.auth != null && (
-        // Usuário pode atualizar seu próprio perfil
-        request.auth.uid == uid ||
-        // Ou qualquer usuário logado pode aprovar outros (alterando apenas isActive)
-        ('isActive' in request.resource.data && 'isActive' in resource.data)
+    function isMaster() {
+      return isSignedIn() && request.auth.token.master == true;
+    }
+
+    function isAccountMember(accountId) {
+      return isSignedIn() && (
+        request.auth.token.accountIds != null &&
+        accountId in request.auth.token.accountIds
       );
     }
 
+    function isAccountTitular(accountId) {
+      return exists(/databases/$(database)/documents/accounts/$(accountId)) &&
+        get(/databases/$(database)/documents/accounts/$(accountId)).data.titularId == request.auth.uid;
+    }
+
+    function hasActiveMembership(accountId) {
+      return exists(/databases/$(database)/documents/accountMembers/$(accountId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/accountMembers/$(accountId)/members/$(request.auth.uid)).data.status == 'active';
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && (
+        request.auth.uid == uid &&
+        !('isMaster' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('supportFlags' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('defaultAccountId' in request.resource.data.diff(resource.data).affectedKeys())
+      );
+      allow delete: if false;
+    }
+
+    match /accounts/{accountId} {
+      allow read: if isSignedIn() && (
+        isMaster() ||
+        isAccountMember(accountId) ||
+        hasActiveMembership(accountId)
+      );
+      allow create: if false;
+      allow update: if isAccountTitular(accountId) && (
+        !('titularId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('planId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('limits' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('metrics' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('status' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        !('isLifetime' in request.resource.data.diff(resource.data).affectedKeys())
+      );
+      allow delete: if false;
+    }
+
+    match /accountMembers/{accountId}/members/{memberId} {
+      allow read: if isSignedIn() && (
+        isMaster() ||
+        isAccountMember(accountId) ||
+        hasActiveMembership(accountId)
+      );
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /plans/{planId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /invitations/{token} {
+      allow read: if isSignedIn() && (
+        isMaster() ||
+        resource.data.email == request.auth.token.email ||
+        isAccountTitular(resource.data.accountId)
+      );
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
     match /lists/{listId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn() && (
+        isMaster() ||
+        (isAccountMember(resource.data.accountId) && hasActiveMembership(resource.data.accountId))
+      );
+      allow create: if isSignedIn() && 
+        request.resource.data.accountId is string &&
+        isAccountMember(request.resource.data.accountId) &&
+        hasActiveMembership(request.resource.data.accountId) &&
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if isSignedIn() && (
+        isMaster() ||
+        (isAccountMember(resource.data.accountId) && hasActiveMembership(resource.data.accountId))
+      ) && 
+      !('accountId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+      !('createdBy' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if isSignedIn() && (
+        isMaster() ||
+        resource.data.createdBy == request.auth.uid ||
+        isAccountTitular(resource.data.accountId)
+      );
 
       match /items/{itemId} {
-        allow read, write: if isSignedIn();
+        allow read: if isSignedIn() && (
+          isMaster() ||
+          (isAccountMember(get(/databases/$(database)/documents/lists/$(listId)).data.accountId) &&
+           hasActiveMembership(get(/databases/$(database)/documents/lists/$(listId)).data.accountId))
+        );
+        allow create: if isSignedIn() &&
+          exists(/databases/$(database)/documents/lists/$(listId)) &&
+          isAccountMember(get(/databases/$(database)/documents/lists/$(listId)).data.accountId) &&
+          hasActiveMembership(get(/databases/$(database)/documents/lists/$(listId)).data.accountId) &&
+          request.resource.data.createdBy == request.auth.uid;
+        allow update: if isSignedIn() &&
+          exists(/databases/$(database)/documents/lists/$(listId)) &&
+          isAccountMember(get(/databases/$(database)/documents/lists/$(listId)).data.accountId) &&
+          hasActiveMembership(get(/databases/$(database)/documents/lists/$(listId)).data.accountId) &&
+          !('listId' in request.resource.data.diff(resource.data).affectedKeys()) &&
+          !('createdBy' in request.resource.data.diff(resource.data).affectedKeys());
+        allow delete: if isSignedIn() &&
+          exists(/databases/$(database)/documents/lists/$(listId)) &&
+          (isMaster() ||
+           resource.data.createdBy == request.auth.uid ||
+           isAccountTitular(get(/databases/$(database)/documents/lists/$(listId)).data.accountId));
       }
+    }
+
+    match /audits/{auditId} {
+      allow read: if isMaster();
+      allow write: if false;
     }
   }
 }

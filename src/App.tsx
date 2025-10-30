@@ -20,14 +20,19 @@ const ListsPage = lazy(async () => {
   return { default: module.ListsPage }
 })
 
-const UsersPage = lazy(async () => {
-  const module = await import('./features/users')
-  return { default: module.UsersPage }
-})
-
 const ProfilePage = lazy(async () => {
   const module = await import('./features/profile')
   return { default: module.ProfilePage }
+})
+
+const AccountPage = lazy(async () => {
+  const module = await import('./features/account/AccountPage')
+  return { default: module.AccountPage }
+})
+
+const AcceptInvitePage = lazy(async () => {
+  const module = await import('./features/invitations/AcceptInvitePage')
+  return { default: module.AcceptInvitePage }
 })
 
 function App() {
@@ -38,10 +43,11 @@ function App() {
           <Suspense fallback={<FullScreenLoader message="Preparando a experiência" />}>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/invite" element={<AcceptInvitePage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/app" element={<AppShell />}>
                   <Route index element={<ListsPage />} />
-                  <Route path="users" element={<UsersPage />} />
+                  <Route path="account" element={<AccountPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                 </Route>
               </Route>

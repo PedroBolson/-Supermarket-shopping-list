@@ -7,12 +7,15 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import type { FirebaseError } from 'firebase/app'
 import { auth, db } from '../../config/firebase'
 import { LoginForm } from './components/LoginForm'
 import { RegisterForm } from './components/RegisterForm'
 import { AuthHero } from './components/AuthHero'
+
+const functions = getFunctions()
 
 function normalizeErrorMessage(error: unknown): string {
   const fallback = 'Não foi possível completar a ação. Tente novamente.'
@@ -130,40 +133,37 @@ export function AuthPage() {
         setRegisterLoading(true)
         setRegisterFeedback(null)
 
+        // 1. Criar usuário no Firebase Auth
         const credential = await createUserWithEmailAndPassword(auth, email, password)
         await updateProfile(credential.user, { displayName: name })
 
-        const userRef = doc(db, 'users', credential.user.uid)
-        await setDoc(userRef, {
+        // 2. Chamar Cloud Function para configurar tudo (conta, claims, etc)
+        const setupUser = httpsCallable(functions, 'setupNewUser')
+        await setupUser({
+          uid: credential.user.uid,
+          email: credential.user.email,
           name,
-          email,
-          isActive: false,
-          photoURL: credential.user.photoURL ?? null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
         })
 
-        await signOut(auth)
+        // 3. Refresh token para pegar as novas claims
+        await credential.user.getIdToken(true)
 
         setRegisterFeedback({
           type: 'success',
-          message: 'Conta criada com sucesso! Aguarde a aprovação interna para liberar seu acesso.',
+          message: 'Conta criada com sucesso! Redirecionando...',
         })
 
-        setMode('login')
-        setLoginFeedback({
-          type: 'success',
-          message: 'Conta criada! Assim que liberarem seu acesso você poderá entrar normalmente.',
-        })
-        setLoginFormKey((value) => value + 1)
-        setRegisterFormKey((value) => value + 1)
+        // 4. Redirecionar para o app
+        setTimeout(() => {
+          navigate(redirectPath, { replace: true })
+        }, 1000)
       } catch (error) {
         setRegisterFeedback({ type: 'error', message: normalizeErrorMessage(error) })
       } finally {
         setRegisterLoading(false)
       }
     },
-    [],
+    [navigate, redirectPath],
   )
 
   const switchToRegister = () => {

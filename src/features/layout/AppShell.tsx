@@ -11,22 +11,28 @@ import {
   Users,
   UserRound,
   X,
+  Shield,
+  Building2,
 } from 'lucide-react'
 import { Avatar, Button } from '../../components/ui'
 import { useAuth } from '../../hooks/use-auth'
 import { cn } from '../../utils/cn'
 import { useTheme } from '../../contexts/theme-context'
 
-const navItems = [
-  { label: 'Listas', icon: ListChecks, to: '/app', exact: true },
-  { label: 'Usuários', icon: Users, to: '/app/users' },
-  { label: 'Perfil', icon: UserRound, to: '/app/profile' },
-]
-
 export function AppShell() {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, isMaster, role } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
+
+  const navItems = [
+    { label: 'Listas', icon: ListChecks, to: '/app', exact: true },
+    { label: 'Conta', icon: Building2, to: '/app/account' },
+    { label: 'Perfil', icon: UserRound, to: '/app/profile' },
+  ]
+
+  // Nota: A página antiga /app/users foi substituída por:
+  // - Titular: /app/account → aba "Membros" (gerencia membros da conta)
+  // - Master: /app/account → aba "Gerenciar Contas" (gerencia todas as contas)
 
   const handleSignOut = async () => {
     await signOut()
