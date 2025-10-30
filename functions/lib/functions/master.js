@@ -7,6 +7,11 @@ const firestore_1 = require("firebase-admin/firestore");
 const audit_1 = require("../utils/audit");
 const validation_1 = require("../utils/validation");
 const config_2 = require("../config");
+function getErrorMessage(error) {
+    if (error instanceof Error)
+        return error.message;
+    return String(error);
+}
 exports.createAccountManually = (0, https_1.onCall)(async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
@@ -77,7 +82,7 @@ exports.createAccountManually = (0, https_1.onCall)(async (request) => {
         };
     }
     catch (error) {
-        await (0, audit_1.logAudit)('master_create_account_error', uid, 'Master Admin', 'account', userId, { userId, error: error.message, success: false }, null);
+        await (0, audit_1.logAudit)('master_create_account_error', uid, 'Master Admin', 'account', userId, { userId, error: getErrorMessage(error), success: false }, null);
         throw error;
     }
 });
@@ -153,7 +158,7 @@ exports.addUserToAccountManually = (0, https_1.onCall)(async (request) => {
         };
     }
     catch (error) {
-        await (0, audit_1.logAudit)('master_add_user_to_account_error', uid, 'Master Admin', 'account', accountId, { userId, accountId, error: error.message, success: false }, accountId);
+        await (0, audit_1.logAudit)('master_add_user_to_account_error', uid, 'Master Admin', 'account', accountId, { userId, accountId, error: getErrorMessage(error), success: false }, accountId);
         throw error;
     }
 });
@@ -215,7 +220,7 @@ exports.removeUserFromAccountManually = (0, https_1.onCall)(async (request) => {
         };
     }
     catch (error) {
-        await (0, audit_1.logAudit)('master_remove_user_from_account_error', uid, 'Master Admin', 'account', accountId, { userId, accountId, error: error.message, success: false }, accountId);
+        await (0, audit_1.logAudit)('master_remove_user_from_account_error', uid, 'Master Admin', 'account', accountId, { userId, accountId, error: getErrorMessage(error), success: false }, accountId);
         throw error;
     }
 });

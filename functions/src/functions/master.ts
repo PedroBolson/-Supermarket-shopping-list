@@ -5,6 +5,11 @@ import { logAudit } from '../utils/audit'
 import { validateMasterPermission } from '../utils/validation'
 import { FREE_PLAN_ID, DEFAULT_PLAN_LIMITS } from '../config'
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
 export const createAccountManually = onCall(async (request) => {
     const uid = request.auth?.uid
     if (!uid) {
@@ -102,14 +107,14 @@ export const createAccountManually = onCall(async (request) => {
             accountId: accountRef.id,
             message: 'Conta criada com sucesso',
         }
-    } catch (error: any) {
+    } catch (error) {
         await logAudit(
             'master_create_account_error',
             uid,
             'Master Admin',
             'account',
             userId,
-            { userId, error: error.message, success: false },
+            { userId, error: getErrorMessage(error), success: false },
             null,
         )
         throw error
@@ -217,14 +222,14 @@ export const addUserToAccountManually = onCall(async (request) => {
             success: true,
             message: 'Usuário adicionado à conta com sucesso',
         }
-    } catch (error: any) {
+    } catch (error) {
         await logAudit(
             'master_add_user_to_account_error',
             uid,
             'Master Admin',
             'account',
             accountId,
-            { userId, accountId, error: error.message, success: false },
+            { userId, accountId, error: getErrorMessage(error), success: false },
             accountId,
         )
         throw error
@@ -320,14 +325,14 @@ export const removeUserFromAccountManually = onCall(async (request) => {
             success: true,
             message: 'Usuário removido da conta com sucesso',
         }
-    } catch (error: any) {
+    } catch (error) {
         await logAudit(
             'master_remove_user_from_account_error',
             uid,
             'Master Admin',
             'account',
             accountId,
-            { userId, accountId, error: error.message, success: false },
+            { userId, accountId, error: getErrorMessage(error), success: false },
             accountId,
         )
         throw error

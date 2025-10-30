@@ -4,6 +4,7 @@ import { logAudit } from "../utils/audit";
 import { validateAuth, isMasterAdmin } from "../utils/validation";
 import { FieldValue } from "firebase-admin/firestore";
 
+
 interface PromoteToMasterRequest {
     userId: string;
 }

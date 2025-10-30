@@ -4,7 +4,7 @@ import { logAudit } from "../utils/audit";
 import { validateAuth, validateAccountPermission } from "../utils/validation";
 import { FieldValue } from "firebase-admin/firestore";
 
-interface SuspendMemberRequest {
+interface SuspendMemberRequest{
     accountId: string;
     memberId: string;
     suspend: boolean;
