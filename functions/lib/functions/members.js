@@ -89,7 +89,7 @@ exports.removeMember = v2_1.https.onCall(async (request) => {
     });
     const memberUserRecord = await config_1.auth.getUser(memberId);
     const currentClaims = (memberUserRecord.customClaims || {});
-    const accountIds = (currentClaims.accountIds || []).filter((id) => id !== accountId);
+    const accountIds = (Array.isArray(currentClaims.accountIds) ? currentClaims.accountIds : []).filter((id) => id !== accountId);
     let newDefaultAccountId = currentClaims.defaultAccountId;
     if (newDefaultAccountId === accountId) {
         newDefaultAccountId = accountIds[0] || null;

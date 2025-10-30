@@ -37,10 +37,10 @@ export function AcceptInvitePage() {
                 setTimeout(() => {
                     navigate('/')
                 }, 2000)
-            } catch (error: any) {
+            } catch (error) {
                 console.error('Erro ao aceitar convite:', error)
                 setStatus('error')
-                setMessage(error.message || 'Erro ao aceitar convite')
+                setMessage(error instanceof Error ? error.message : 'Erro ao aceitar convite')
             }
         }
 

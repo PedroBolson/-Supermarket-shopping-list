@@ -1,6 +1,6 @@
 import { scheduler } from "firebase-functions/v2";
 import { db } from "../config";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 export const checkExpiredAccounts = scheduler.onSchedule(
     {
@@ -29,7 +29,7 @@ export const checkExpiredAccounts = scheduler.onSchedule(
         for (const doc of accountsSnapshot.docs) {
             batch.update(doc.ref, {
                 status: "expired",
-                updatedAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             });
             count++;
         }

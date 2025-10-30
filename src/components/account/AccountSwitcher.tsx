@@ -44,7 +44,7 @@ export function AccountSwitcher() {
             </Button>
 
             <Modal
-                isOpen={isOpen}
+                open={isOpen}
                 onClose={() => setIsOpen(false)}
                 title="Selecionar Conta"
             >

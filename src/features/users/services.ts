@@ -22,7 +22,11 @@ function mapUser(docSnapshot: QueryDocumentSnapshot<DocumentData>): UserProfile 
     email: data.email ?? '',
     photoURL: data.photoURL ?? null,
     isActive: Boolean(data.isActive),
+    isMaster: Boolean(data.isMaster),
     bio: data.bio ?? '',
+    defaultAccountId: data.defaultAccountId ?? null,
+    consents: data.consents ?? {},
+    supportFlags: data.supportFlags ?? {},
     createdAt: data.createdAt?.toDate?.() ?? undefined,
     updatedAt: data.updatedAt?.toDate?.() ?? undefined,
   }

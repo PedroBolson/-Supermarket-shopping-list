@@ -1,7 +1,7 @@
 import { https } from "firebase-functions/v2";
 import { db } from "../config";
 import type { Invitation, AccountMember } from "../types";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { logAudit } from "../utils/audit";
 import {
     validateAuth,
@@ -10,7 +10,6 @@ import {
     validatePlanLimits,
 } from "../utils/validation";
 import { INVITATION_EXPIRY_DAYS } from "../config";
-
 
 interface SendInvitationRequest {
     accountId: string;
@@ -97,8 +96,8 @@ export const sendInvitation = https.onCall<SendInvitationRequest>(
             invitedBy: uid,
             invitedByName: userName,
             accountName: accountData.name,
-            createdAt: FieldValue.serverTimestamp() as any,
-            expiresAt: FieldValue.serverTimestamp() as any,
+            createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+            expiresAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             acceptedAt: null,
             acceptedBy: null,
         };
@@ -184,7 +183,7 @@ export const acceptInvitation = https.onCall<AcceptInvitationRequest>(
             status: "active",
             invitedBy: invitation.invitedBy,
             invitedAt: invitation.createdAt,
-            joinedAt: FieldValue.serverTimestamp() as any,
+            joinedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             suspendedAt: null,
             suspendedBy: null,
         };
@@ -198,7 +197,7 @@ export const acceptInvitation = https.onCall<AcceptInvitationRequest>(
 
         await invitationDoc.ref.update({
             status: "accepted",
-            acceptedAt: FieldValue.serverTimestamp(),
+            acceptedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             acceptedBy: uid,
         });
 

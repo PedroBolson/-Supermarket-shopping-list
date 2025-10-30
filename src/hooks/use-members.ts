@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore'
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import type { AccountMember } from '../types'
-import { useAuthContext } from '../contexts/auth-context'
 
 export function useMembers(accountId: string | undefined) {
     const [members, setMembers] = useState<AccountMember[]>([])

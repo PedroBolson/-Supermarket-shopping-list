@@ -1,6 +1,6 @@
 import { db } from "../config";
 import type { AuditLog } from "../types";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 export async function logAudit(
     action: string,
@@ -22,7 +22,7 @@ export async function logAudit(
         details,
         ipAddress: metadata?.ipAddress,
         userAgent: metadata?.userAgent,
-        timestamp: FieldValue.serverTimestamp() as any,
+        timestamp: FieldValue.serverTimestamp() as unknown as Timestamp,
     };
 
     await db.collection("audits").add(auditDoc);

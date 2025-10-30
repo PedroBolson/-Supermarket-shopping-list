@@ -8,10 +8,8 @@ import {
   Moon,
   ShoppingCart,
   Sun,
-  Users,
   UserRound,
   X,
-  Shield,
   Building2,
 } from 'lucide-react'
 import { Avatar, Button } from '../../components/ui'
@@ -20,7 +18,7 @@ import { cn } from '../../utils/cn'
 import { useTheme } from '../../contexts/theme-context'
 
 export function AppShell() {
-  const { profile, signOut, isMaster, role } = useAuth()
+  const { profile, signOut } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
 

@@ -136,7 +136,7 @@ export function InvitationsManager() {
             </div>
 
             <Modal
-                isOpen={isModalOpen}
+                open={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 title="Enviar Convite"
             >

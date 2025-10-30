@@ -156,11 +156,11 @@ export function MembersManager() {
             </div>
 
             <ConfirmDialog
-                isOpen={confirmDialog.isOpen}
-                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                open={confirmDialog.isOpen}
+                onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
                 onConfirm={confirmDialog.onConfirm}
                 title={confirmDialog.title}
-                message={confirmDialog.message}
+                description={confirmDialog.message}
             />
         </>
     )

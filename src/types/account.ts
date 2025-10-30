@@ -1,5 +1,3 @@
-import type { Timestamp } from 'firebase/firestore'
-
 export type UserRole = 'titular' | 'convidado' | 'master'
 
 export type AccountStatus = 'active' | 'suspended' | 'expired' | 'pending'

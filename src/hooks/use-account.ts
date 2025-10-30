@@ -1,5 +1,5 @@
 import { useAuthContext } from '../contexts/auth-context'
-import type { Account, UserRole } from '../types'
+import type { UserRole } from '../types'
 
 export function useAccount() {
     const { currentAccount, profile, claims } = useAuthContext()

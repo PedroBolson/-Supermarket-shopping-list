@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Users, Mail, Settings, Crown } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
-import { Button } from '../../components/ui/Button'
 import { LimitsCard } from '../../components/account/LimitsCard'
 import { MembersManager } from './components/MembersManager'
 import { InvitationsManager } from './components/InvitationsManager'
@@ -40,8 +39,8 @@ export function TitularDashboard() {
                         <button
                             onClick={() => setActiveTab('members')}
                             className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'members'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                                 }`}
                         >
                             <Users className="h-4 w-4" />
@@ -50,8 +49,8 @@ export function TitularDashboard() {
                         <button
                             onClick={() => setActiveTab('invitations')}
                             className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'invitations'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                                 }`}
                         >
                             <Mail className="h-4 w-4" />
@@ -60,8 +59,8 @@ export function TitularDashboard() {
                         <button
                             onClick={() => setActiveTab('settings')}
                             className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'settings'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                                 }`}
                         >
                             <Settings className="h-4 w-4" />

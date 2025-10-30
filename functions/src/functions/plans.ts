@@ -2,7 +2,7 @@ import { https } from "firebase-functions/v2";
 import { db } from "../config";
 import { logAudit } from "../utils/audit";
 import { validateAuth, validateAccountPermission, isMasterAdmin } from "../utils/validation";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 interface SwitchPlanRequest {
     accountId: string;
@@ -61,8 +61,8 @@ export const switchPlan = https.onCall<SwitchPlanRequest>(async (request) => {
     await accountDoc.ref.update({
         planId: newPlanId,
         limits: planData.limits,
-        expiresAt: expiresAt ? FieldValue.serverTimestamp() : null,
-        updatedAt: FieldValue.serverTimestamp(),
+        expiresAt: expiresAt ? FieldValue.serverTimestamp() as unknown as Timestamp : null,
+        updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     });
 
     const userDoc = await db.collection("users").doc(uid).get();
@@ -117,7 +117,7 @@ export const grantLifetimeAccess = https.onCall<GrantLifetimeAccessRequest>(
             isLifetime: true,
             expiresAt: null,
             status: "active",
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         });
 
         const userDoc = await db.collection("users").doc(uid).get();
@@ -183,7 +183,7 @@ export const updateAccountLimits = https.onCall<UpdateAccountLimitsRequest>(
 
         await accountDoc.ref.update({
             limits: updatedLimits,
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         });
 
         const userDoc = await db.collection("users").doc(uid).get();

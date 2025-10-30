@@ -2,8 +2,7 @@ import { https } from "firebase-functions/v2";
 import { db, auth } from "../config";
 import { logAudit } from "../utils/audit";
 import { validateAuth, isMasterAdmin } from "../utils/validation";
-import { FieldValue } from "firebase-admin/firestore";
-
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 interface PromoteToMasterRequest {
     userId: string;
@@ -42,11 +41,11 @@ export const promoteToMaster = https.onCall<PromoteToMasterRequest>(
             "supportFlags.canAccessAllAccounts": true,
             "supportFlags.canModifyPlans": true,
             "supportFlags.canViewAudits": true,
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         });
 
         const userRecord = await auth.getUser(userId);
-        const currentClaims = (userRecord.customClaims || {}) as any;
+        const currentClaims = (userRecord.customClaims || {}) as Record<string, unknown>;
 
         await auth.setCustomUserClaims(userId, {
             ...currentClaims,
@@ -116,11 +115,11 @@ export const demoteFromMaster = https.onCall<DemoteFromMasterRequest>(
             "supportFlags.canAccessAllAccounts": false,
             "supportFlags.canModifyPlans": false,
             "supportFlags.canViewAudits": false,
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         });
 
         const userRecord = await auth.getUser(userId);
-        const currentClaims = (userRecord.customClaims || {}) as any;
+        const currentClaims = (userRecord.customClaims || {}) as Record<string, unknown>;
 
         await auth.setCustomUserClaims(userId, {
             ...currentClaims,
@@ -183,7 +182,7 @@ export const suspendAccount = https.onCall<SuspendAccountRequest>(
 
         await accountDoc.ref.update({
             status: newStatus,
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         });
 
         const adminDoc = await db.collection("users").doc(uid).get();

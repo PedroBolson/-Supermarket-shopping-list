@@ -241,15 +241,15 @@ export function MasterPlansManager() {
             </div>
 
             {/* Modal: Editar/Criar Plano */}
-            <Modal
-                isOpen={isEditing || isCreating}
-                onClose={() => {
-                    setIsEditing(false)
-                    setIsCreating(false)
-                    setSelectedPlan(null)
-                }}
-                title={isEditing ? 'Editar Plano' : 'Criar Novo Plano'}
-            >
+      <Modal
+        open={isEditing || isCreating}
+        onClose={() => {
+          setIsEditing(false)
+          setIsCreating(false)
+          setSelectedPlan(null)
+        }}
+        title={isEditing ? 'Editar Plano' : 'Criar Novo Plano'}
+      >
                 <div className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
                         <Input

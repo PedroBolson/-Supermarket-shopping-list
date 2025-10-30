@@ -1,7 +1,7 @@
 import { onCall } from "firebase-functions/v2/https";
 import { auth, db } from "../config";
 import type { Account, AccountMember } from "../types";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { logAudit } from "../utils/audit";
 import { FREE_PLAN_ID, DEFAULT_PLAN_LIMITS } from "../config";
 
@@ -48,7 +48,7 @@ export const setupNewUser = onCall<SetupUserRequest>(async (request) => {
 
             await invitationDoc.ref.update({
                 status: "accepted",
-                acceptedAt: FieldValue.serverTimestamp(),
+                acceptedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
                 acceptedBy: uid,
             });
 
@@ -59,7 +59,7 @@ export const setupNewUser = onCall<SetupUserRequest>(async (request) => {
                 status: "active",
                 invitedBy: invitation.invitedBy,
                 invitedAt: invitation.createdAt,
-                joinedAt: FieldValue.serverTimestamp() as any,
+                joinedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
                 suspendedAt: null,
                 suspendedBy: null,
             };
@@ -110,8 +110,8 @@ export const setupNewUser = onCall<SetupUserRequest>(async (request) => {
                     currentStorageMB: 0,
                 },
                 isLifetime: false,
-                createdAt: FieldValue.serverTimestamp() as any,
-                updatedAt: FieldValue.serverTimestamp() as any,
+                createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+                updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             };
 
             await accountRef.set(accountDoc);
@@ -122,8 +122,8 @@ export const setupNewUser = onCall<SetupUserRequest>(async (request) => {
                 role: "titular",
                 status: "active",
                 invitedBy: uid,
-                invitedAt: FieldValue.serverTimestamp() as any,
-                joinedAt: FieldValue.serverTimestamp() as any,
+                invitedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+                joinedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
                 suspendedAt: null,
                 suspendedBy: null,
             };
@@ -159,15 +159,15 @@ export const setupNewUser = onCall<SetupUserRequest>(async (request) => {
                 termsAccepted: true,
                 privacyAccepted: true,
                 marketingAccepted: false,
-                acceptedAt: FieldValue.serverTimestamp(),
+                acceptedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             },
             supportFlags: {
                 canAccessAllAccounts: false,
                 canModifyPlans: false,
                 canViewAudits: false,
             },
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         }, { merge: true });
 
         const accountIds = [accountId];

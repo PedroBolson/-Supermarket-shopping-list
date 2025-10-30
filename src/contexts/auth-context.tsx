@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
-import { doc, onSnapshot, type DocumentData, getDoc } from 'firebase/firestore'
+import { doc, onSnapshot, type DocumentData, getDoc, updateDoc } from 'firebase/firestore'
 import { auth, db } from '../config/firebase'
-import type { UserProfile, CustomClaims, Account } from '../types'
+import type { UserProfile, CustomClaims, Account, UserRole } from '../types'
 
 export type AuthContextValue = {
   authUser: User | null
@@ -12,7 +12,7 @@ export type AuthContextValue = {
   currentAccount: Account | null
   loading: boolean
   isMaster: boolean
-  role: 'titular' | 'convidado' | null
+  role: 'titular' | 'convidado' | 'master' | null
   signOut: () => Promise<void>
   refreshClaims: () => Promise<void>
   switchAccount: (accountId: string) => Promise<void>
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const idTokenResult = await authUser.getIdTokenResult(true)
       const customClaims: CustomClaims = {
-        role: idTokenResult.claims.role as any,
+        role: (idTokenResult.claims.role as UserRole) || null,
         accountIds: idTokenResult.claims.accountIds as string[],
         defaultAccountId: idTokenResult.claims.defaultAccountId as string,
         master: idTokenResult.claims.master as boolean,
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setCurrentAccount(accountData)
 
           if (profile?.uid) {
-            await doc(db, 'users', profile.uid).update({
+            await updateDoc(doc(db, 'users', profile.uid), {
               defaultAccountId: accountId,
             })
           }
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const idTokenResult = await firebaseUser.getIdTokenResult()
         const customClaims: CustomClaims = {
-          role: idTokenResult.claims.role as any,
+          role: (idTokenResult.claims.role as UserRole) || null,
           accountIds: idTokenResult.claims.accountIds as string[],
           defaultAccountId: idTokenResult.claims.defaultAccountId as string,
           master: idTokenResult.claims.master as boolean,
@@ -258,6 +258,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuthContext() {
   const ctx = useContext(AuthContext)
 

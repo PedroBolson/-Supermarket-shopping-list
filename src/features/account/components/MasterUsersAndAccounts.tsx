@@ -7,7 +7,7 @@ import { Badge } from '../../../components/ui/Badge'
 import { Modal } from '../../../components/ui/Modal'
 import { Input } from '../../../components/ui/Input'
 import { Avatar } from '../../../components/ui/Avatar'
-import { Users, Building2, Plus, UserPlus, Trash2 } from 'lucide-react'
+import { Users, Building2, Plus, UserPlus } from 'lucide-react'
 import type { UserProfile, Account } from '../../../types'
 import { usePlans } from '../../../hooks/use-plans'
 import * as masterService from '../../../services/master'
@@ -99,9 +99,9 @@ export function MasterUsersAndAccounts() {
             setSelectedUser(null)
             setNewAccountName('')
             alert('Conta criada com sucesso!')
-        } catch (error: any) {
+        } catch (error) {
             console.error('Erro ao criar conta:', error)
-            alert(`Erro: ${error.message}`)
+            alert(`Erro: ${error instanceof Error ? error.message : String(error)}`)
         } finally {
             setActionLoading(false)
         }
@@ -121,9 +121,9 @@ export function MasterUsersAndAccounts() {
             setSelectedUser(null)
             setSelectedAccount(null)
             alert('Usuário adicionado à conta!')
-        } catch (error: any) {
+        } catch (error) {
             console.error('Erro ao adicionar usuário:', error)
-            alert(`Erro: ${error.message}`)
+            alert(`Erro: ${error instanceof Error ? error.message : String(error)}`)
         } finally {
             setActionLoading(false)
         }
@@ -166,8 +166,8 @@ export function MasterUsersAndAccounts() {
                     <button
                         onClick={() => setActiveTab('users')}
                         className={`border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'users'
-                                ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                            ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                            : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                             }`}
                     >
                         <Users className="mr-2 inline h-4 w-4" />
@@ -176,8 +176,8 @@ export function MasterUsersAndAccounts() {
                     <button
                         onClick={() => setActiveTab('accounts')}
                         className={`border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'accounts'
-                                ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                            ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                            : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                             }`}
                     >
                         <Building2 className="mr-2 inline h-4 w-4" />

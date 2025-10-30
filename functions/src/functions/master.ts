@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { auth, db } from '../config'
-import { FieldValue } from 'firebase-admin/firestore'
+import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { logAudit } from '../utils/audit'
 import { validateMasterPermission } from '../utils/validation'
 import { FREE_PLAN_ID, DEFAULT_PLAN_LIMITS } from '../config'
@@ -58,8 +58,8 @@ export const createAccountManually = onCall(async (request) => {
                 currentLists: 0,
                 currentStorageMB: 0,
             },
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         })
 
         await db
@@ -71,12 +71,12 @@ export const createAccountManually = onCall(async (request) => {
                 userId,
                 role: 'titular',
                 status: 'active',
-                joinedAt: FieldValue.serverTimestamp(),
+                joinedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             })
 
         await db.collection('users').doc(userId).update({
             defaultAccountId: accountRef.id,
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         })
 
         const claims = await auth.getUser(userId).then((u) => u.customClaims || {})
@@ -172,7 +172,7 @@ export const addUserToAccountManually = onCall(async (request) => {
                 userId,
                 role: finalRole,
                 status: 'active',
-                joinedAt: FieldValue.serverTimestamp(),
+                joinedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             })
 
         await db
@@ -180,7 +180,7 @@ export const addUserToAccountManually = onCall(async (request) => {
             .doc(accountId)
             .update({
                 'metrics.currentMembers': FieldValue.increment(1),
-                updatedAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             })
 
         const userClaims = await auth.getUser(userId).then((u) => u.customClaims || {})
@@ -199,7 +199,7 @@ export const addUserToAccountManually = onCall(async (request) => {
         if (!userData.defaultAccountId) {
             await db.collection('users').doc(userId).update({
                 defaultAccountId: accountId,
-                updatedAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             })
         }
 
@@ -290,7 +290,7 @@ export const removeUserFromAccountManually = onCall(async (request) => {
             .doc(accountId)
             .update({
                 'metrics.currentMembers': FieldValue.increment(-1),
-                updatedAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
             })
 
         const userClaims = await auth.getUser(userId).then((u) => u.customClaims || {})

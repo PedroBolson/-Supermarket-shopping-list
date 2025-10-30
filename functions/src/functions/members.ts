@@ -2,7 +2,7 @@ import { https } from "firebase-functions/v2";
 import { db, auth } from "../config";
 import { logAudit } from "../utils/audit";
 import { validateAuth, validateAccountPermission } from "../utils/validation";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 interface SuspendMemberRequest{
     accountId: string;
@@ -53,7 +53,7 @@ export const suspendMember = https.onCall<SuspendMemberRequest>(
         const updateData = suspend
             ? {
                 status: "suspended",
-                suspendedAt: FieldValue.serverTimestamp(),
+                suspendedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
                 suspendedBy: uid,
             }
             : {
@@ -136,8 +136,8 @@ export const removeMember = https.onCall<RemoveMemberRequest>(
         });
 
         const memberUserRecord = await auth.getUser(memberId);
-        const currentClaims = (memberUserRecord.customClaims || {}) as any;
-        const accountIds = (currentClaims.accountIds || []).filter(
+        const currentClaims = (memberUserRecord.customClaims || {}) as Record<string, unknown>;
+        const accountIds = (Array.isArray(currentClaims.accountIds) ? currentClaims.accountIds : []).filter(
             (id: string) => id !== accountId
         );
 
@@ -221,7 +221,7 @@ export const transferOwnership = https.onCall<TransferOwnershipRequest>(
 
         await accountDoc.ref.update({
             titularId: newTitularId,
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
         });
 
         await db
@@ -243,14 +243,14 @@ export const transferOwnership = https.onCall<TransferOwnershipRequest>(
             });
 
         const oldTitularRecord = await auth.getUser(uid);
-        const oldClaims = (oldTitularRecord.customClaims || {}) as any;
+        const oldClaims = (oldTitularRecord.customClaims || {}) as Record<string, unknown>;
         await auth.setCustomUserClaims(uid, {
             ...oldClaims,
             role: "convidado",
         });
 
         const newTitularRecord = await auth.getUser(newTitularId);
-        const newClaims = (newTitularRecord.customClaims || {}) as any;
+        const newClaims = (newTitularRecord.customClaims || {}) as Record<string, unknown>;
         await auth.setCustomUserClaims(newTitularId, {
             ...newClaims,
             role: "titular",
