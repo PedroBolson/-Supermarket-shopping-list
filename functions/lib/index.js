@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeUserFromAccountManually = exports.addUserToAccountManually = exports.createAccountManually = exports.checkExpiredInvitations = exports.checkExpiredAccounts = exports.suspendAccount = exports.demoteFromMaster = exports.promoteToMaster = exports.updateAccountLimits = exports.grantLifetimeAccess = exports.switchPlan = exports.transferOwnership = exports.removeMember = exports.suspendMember = exports.revokeInvitation = exports.acceptInvitation = exports.sendInvitation = exports.setupNewUser = void 0;
+exports.deleteUser = exports.deleteAccount = exports.removeUserFromAccountManually = exports.addUserToAccountManually = exports.createAccountManually = exports.checkExpiredInvitations = exports.checkExpiredAccounts = exports.suspendAccount = exports.demoteFromMaster = exports.promoteToMaster = exports.updateAccountLimits = exports.grantLifetimeAccess = exports.switchPlan = exports.transferOwnership = exports.removeMember = exports.suspendMember = exports.revokeInvitation = exports.acceptInvitation = exports.sendInvitation = exports.setupNewUser = void 0;
 var auth_1 = require("./triggers/auth");
 Object.defineProperty(exports, "setupNewUser", { enumerable: true, get: function () { return auth_1.setupNewUser; } });
 var invitations_1 = require("./functions/invitations");
@@ -26,4 +26,8 @@ var master_1 = require("./functions/master");
 Object.defineProperty(exports, "createAccountManually", { enumerable: true, get: function () { return master_1.createAccountManually; } });
 Object.defineProperty(exports, "addUserToAccountManually", { enumerable: true, get: function () { return master_1.addUserToAccountManually; } });
 Object.defineProperty(exports, "removeUserFromAccountManually", { enumerable: true, get: function () { return master_1.removeUserFromAccountManually; } });
+// Account management
+var accounts_1 = require("./functions/accounts");
+Object.defineProperty(exports, "deleteAccount", { enumerable: true, get: function () { return accounts_1.deleteAccount; } });
+Object.defineProperty(exports, "deleteUser", { enumerable: true, get: function () { return accounts_1.deleteUser; } });
 //# sourceMappingURL=index.js.map

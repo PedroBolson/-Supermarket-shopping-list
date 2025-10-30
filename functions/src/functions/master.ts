@@ -10,7 +10,7 @@ function getErrorMessage(error: unknown): string {
   return String(error)
 }
 
-export const createAccountManually = onCall(async (request) => {
+export const createAccountManually = onCall({ cors: true }, async (request) => {
     const uid = request.auth?.uid
     if (!uid) {
         throw new HttpsError('unauthenticated', 'Usuário não autenticado')
@@ -121,7 +121,7 @@ export const createAccountManually = onCall(async (request) => {
     }
 })
 
-export const addUserToAccountManually = onCall(async (request) => {
+export const addUserToAccountManually = onCall({ cors: true }, async (request) => {
     const uid = request.auth?.uid
     if (!uid) {
         throw new HttpsError('unauthenticated', 'Usuário não autenticado')
@@ -236,7 +236,7 @@ export const addUserToAccountManually = onCall(async (request) => {
     }
 })
 
-export const removeUserFromAccountManually = onCall(async (request) => {
+export const removeUserFromAccountManually = onCall({ cors: true }, async (request) => {
     const uid = request.auth?.uid
     if (!uid) {
         throw new HttpsError('unauthenticated', 'Usuário não autenticado')

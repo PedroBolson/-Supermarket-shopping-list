@@ -12,10 +12,15 @@ async function logAudit(action, performedBy, performedByName, targetType, target
         targetType,
         targetId,
         details,
-        ipAddress: metadata === null || metadata === void 0 ? void 0 : metadata.ipAddress,
-        userAgent: metadata === null || metadata === void 0 ? void 0 : metadata.userAgent,
         timestamp: firestore_1.FieldValue.serverTimestamp(),
     };
+    // Só adiciona se não for undefined
+    if (metadata === null || metadata === void 0 ? void 0 : metadata.ipAddress) {
+        auditDoc.ipAddress = metadata.ipAddress;
+    }
+    if (metadata === null || metadata === void 0 ? void 0 : metadata.userAgent) {
+        auditDoc.userAgent = metadata.userAgent;
+    }
     await config_1.db.collection("audits").add(auditDoc);
 }
 //# sourceMappingURL=audit.js.map

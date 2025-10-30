@@ -18,7 +18,7 @@ export function useMembers(accountId: string | undefined) {
         setLoading(true)
         setError(null)
 
-        const membersRef = collection(db, 'accountMembers', accountId, 'members')
+        const membersRef = collection(db, 'accounts', accountId, 'members')
         const q = query(membersRef, orderBy('joinedAt', 'desc'))
 
         const unsubscribe = onSnapshot(

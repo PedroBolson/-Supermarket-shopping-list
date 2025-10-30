@@ -12,7 +12,7 @@ export async function logAudit(
     accountId?: string | null,
     metadata?: { ipAddress?: string; userAgent?: string }
 ): Promise<void> {
-    const auditDoc: Omit<AuditLog, "id"> = {
+    const auditDoc: Record<string, unknown> = {
         accountId: accountId || null,
         action,
         performedBy,
@@ -20,10 +20,16 @@ export async function logAudit(
         targetType,
         targetId,
         details,
-        ipAddress: metadata?.ipAddress,
-        userAgent: metadata?.userAgent,
         timestamp: FieldValue.serverTimestamp() as unknown as Timestamp,
     };
+
+    // Só adiciona se não for undefined
+    if (metadata?.ipAddress) {
+        auditDoc.ipAddress = metadata.ipAddress;
+    }
+    if (metadata?.userAgent) {
+        auditDoc.userAgent = metadata.userAgent;
+    }
 
     await db.collection("audits").add(auditDoc);
 }

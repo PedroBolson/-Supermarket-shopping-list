@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
 import { db } from '../../../config/firebase'
 import { Card } from '../../../components/ui/Card'
@@ -7,19 +7,24 @@ import { Badge } from '../../../components/ui/Badge'
 import { Modal } from '../../../components/ui/Modal'
 import { Input } from '../../../components/ui/Input'
 import { Avatar } from '../../../components/ui/Avatar'
-import { Users, Building2, Plus, UserPlus } from 'lucide-react'
+import { ConfirmDialog } from '../../../components/feedback/ConfirmDialog'
+import { Users, Building2, Plus, UserPlus, Search, Eye, Trash2, UserMinus } from 'lucide-react'
 import type { UserProfile, Account } from '../../../types'
 import { usePlans } from '../../../hooks/use-plans'
 import * as masterService from '../../../services/master'
+import * as accountsService from '../../../services/accounts'
 
 export function MasterUsersAndAccounts() {
     const [users, setUsers] = useState<UserProfile[]>([])
     const [accounts, setAccounts] = useState<Account[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'users' | 'accounts'>('users')
+    const [searchTerm, setSearchTerm] = useState('')
 
     const [createAccountModal, setCreateAccountModal] = useState(false)
     const [addUserModal, setAddUserModal] = useState(false)
+    const [userDetailsModal, setUserDetailsModal] = useState(false)
+    const [accountDetailsModal, setAccountDetailsModal] = useState(false)
     const [actionLoading, setActionLoading] = useState(false)
 
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
@@ -27,6 +32,18 @@ export function MasterUsersAndAccounts() {
 
     const [newAccountName, setNewAccountName] = useState('')
     const [newAccountPlanId, setNewAccountPlanId] = useState('free')
+
+    const [confirmDialog, setConfirmDialog] = useState<{
+        open: boolean
+        title: string
+        description: string
+        onConfirm: () => void
+    }>({
+        open: false,
+        title: '',
+        description: '',
+        onConfirm: () => { },
+    })
 
     const { plans } = usePlans()
 
@@ -85,6 +102,28 @@ export function MasterUsersAndAccounts() {
         }
     }, [])
 
+    const filteredUsers = useMemo(() => {
+        if (!searchTerm) return users
+        const term = searchTerm.toLowerCase()
+        return users.filter(
+            (user) =>
+                user.name.toLowerCase().includes(term) ||
+                user.email.toLowerCase().includes(term) ||
+                user.uid.toLowerCase().includes(term)
+        )
+    }, [users, searchTerm])
+
+    const filteredAccounts = useMemo(() => {
+        if (!searchTerm) return accounts
+        const term = searchTerm.toLowerCase()
+        return accounts.filter(
+            (account) =>
+                account.name.toLowerCase().includes(term) ||
+                account.id.toLowerCase().includes(term) ||
+                users.find((u) => u.uid === account.titularId)?.name.toLowerCase().includes(term)
+        )
+    }, [accounts, searchTerm, users])
+
     const handleCreateAccount = async () => {
         if (!selectedUser) return
 
@@ -129,311 +168,541 @@ export function MasterUsersAndAccounts() {
         }
     }
 
-    const openCreateAccountFor = (user: UserProfile) => {
-        setSelectedUser(user)
-        setNewAccountName(`Conta de ${user.name}`)
-        setCreateAccountModal(true)
+    const handleDeleteAccount = async (account: Account) => {
+        setConfirmDialog({
+            open: true,
+            title: 'Excluir Conta',
+            description: `Tem certeza que deseja excluir a conta "${account.name}"? Esta ação irá deletar todos os membros, convites e listas associados. Esta ação não pode ser desfeita.`,
+            onConfirm: async () => {
+                try {
+                    await accountsService.deleteAccount(account.id)
+                    alert('Conta excluída com sucesso!')
+                } catch (error) {
+                    console.error('Erro ao excluir conta:', error)
+                    alert(`Erro: ${error instanceof Error ? error.message : String(error)}`)
+                } finally {
+                    setConfirmDialog({ ...confirmDialog, open: false })
+                }
+            },
+        })
     }
 
-    const openAddUserTo = (user: UserProfile) => {
+    const openUserDetails = (user: UserProfile) => {
         setSelectedUser(user)
-        setAddUserModal(true)
+        setUserDetailsModal(true)
     }
+
+    const openAccountDetails = (account: Account) => {
+        setSelectedAccount(account)
+        setAccountDetailsModal(true)
+    }
+
+    const usersWithoutAccount = filteredUsers.filter((user) => !user.defaultAccountId)
+    const usersWithAccount = filteredUsers.filter((user) => user.defaultAccountId)
 
     if (loading) {
-        return <div className="text-center">Carregando dados...</div>
+        return <div className="py-8 text-center text-gray-500">Carregando...</div>
     }
 
-    const usersWithoutAccount = users.filter((u) => !u.defaultAccountId)
-    const usersWithAccount = users.filter((u) => u.defaultAccountId)
-
     return (
-        <>
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">Gerenciar Sistema</h2>
-                    <div className="flex gap-2">
-                        <Badge variant="info">
-                            {users.length} usuário(s)
-                        </Badge>
-                        <Badge variant="success">
-                            {accounts.length} conta(s)
-                        </Badge>
-                    </div>
-                </div>
-
-                <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
-                    <button
-                        onClick={() => setActiveTab('users')}
-                        className={`border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'users'
+        <div className="space-y-6">
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+                <button
+                    onClick={() => {
+                        setActiveTab('users')
+                        setSearchTerm('')
+                    }}
+                    className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'users'
                             ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                             : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
-                            }`}
-                    >
-                        <Users className="mr-2 inline h-4 w-4" />
-                        Usuários ({users.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('accounts')}
-                        className={`border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'accounts'
+                        }`}
+                >
+                    <Users className="h-4 w-4" />
+                    Usuários ({users.length})
+                </button>
+                <button
+                    onClick={() => {
+                        setActiveTab('accounts')
+                        setSearchTerm('')
+                    }}
+                    className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'accounts'
                             ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                             : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
-                            }`}
-                    >
-                        <Building2 className="mr-2 inline h-4 w-4" />
-                        Contas ({accounts.length})
-                    </button>
-                </div>
-
-                {activeTab === 'users' && (
-                    <div className="space-y-4">
-                        {usersWithoutAccount.length > 0 && (
-                            <div>
-                                <h3 className="mb-2 text-sm font-semibold text-red-600">
-                                    ⚠️ Usuários SEM conta ({usersWithoutAccount.length})
-                                </h3>
-                                <div className="space-y-2">
-                                    {usersWithoutAccount.map((user) => (
-                                        <Card key={user.uid} className="p-4">
-                                            <div className="flex items-center justify-between gap-4">
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar src={user.photoURL} alt={user.name} size="sm" />
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="font-semibold">{user.name}</p>
-                                                            {user.isMaster && <Badge variant="error">Master</Badge>}
-                                                        </div>
-                                                        <p className="text-sm text-gray-600 dark:text-gray-400">{user.email}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => openCreateAccountFor(user)}
-                                                    >
-                                                        <Plus className="h-3 w-3" />
-                                                        Criar Conta
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => openAddUserTo(user)}
-                                                    >
-                                                        <UserPlus className="h-3 w-3" />
-                                                        Adicionar em Conta
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {usersWithAccount.length > 0 && (
-                            <div>
-                                <h3 className="mb-2 text-sm font-semibold text-green-600">
-                                    ✅ Usuários COM conta ({usersWithAccount.length})
-                                </h3>
-                                <div className="space-y-2">
-                                    {usersWithAccount.map((user) => {
-                                        const userAccount = accounts.find((a) => a.id === user.defaultAccountId)
-                                        return (
-                                            <Card key={user.uid} className="p-4">
-                                                <div className="flex items-center justify-between gap-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <Avatar src={user.photoURL} alt={user.name} size="sm" />
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="font-semibold">{user.name}</p>
-                                                                {user.isMaster && <Badge variant="error">Master</Badge>}
-                                                            </div>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{user.email}</p>
-                                                            {userAccount && (
-                                                                <p className="text-xs text-gray-500">
-                                                                    Conta: {userAccount.name} ({userAccount.planId})
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => openAddUserTo(user)}
-                                                    >
-                                                        <UserPlus className="h-3 w-3" />
-                                                        Adicionar em Outra Conta
-                                                    </Button>
-                                                </div>
-                                            </Card>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {activeTab === 'accounts' && (
-                    <div className="space-y-2">
-                        {accounts.map((account) => {
-                            const titular = users.find((u) => u.uid === account.titularId)
-                            return (
-                                <Card key={account.id} className="p-4">
-                                    <div className="space-y-3">
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="font-semibold">{account.name}</h3>
-                                                    <Badge variant={account.status === 'active' ? 'success' : 'error'}>
-                                                        {account.status}
-                                                    </Badge>
-                                                    {account.isLifetime && <Badge variant="success">Vitalício</Badge>}
-                                                </div>
-                                                {titular && (
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                        Titular: {titular.name} ({titular.email})
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <Badge variant="info">{account.planId}</Badge>
-                                        </div>
-
-                                        <div className="grid gap-2 text-sm md:grid-cols-2">
-                                            <div>
-                                                <span className="text-gray-600 dark:text-gray-400">Membros:</span>{' '}
-                                                <span className="font-medium">
-                                                    {account.metrics.currentMembers} / {account.limits.maxMembers}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600 dark:text-gray-400">Listas:</span>{' '}
-                                                <span className="font-medium">
-                                                    {account.metrics.currentLists} / {account.limits.maxLists}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Card>
-                            )
-                        })}
-
-                        {accounts.length === 0 && (
-                            <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-500">
-                                Nenhuma conta criada ainda
-                            </div>
-                        )}
-                    </div>
-                )}
+                        }`}
+                >
+                    <Building2 className="h-4 w-4" />
+                    Contas ({accounts.length})
+                </button>
             </div>
 
-            {/* Modal: Criar Conta */}
+            {/* Search Bar */}
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={
+                        activeTab === 'users'
+                            ? 'Pesquisar usuários por nome, email ou ID...'
+                            : 'Pesquisar contas por nome, ID ou titular...'
+                    }
+                    className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                />
+            </div>
+
+            {/* Users Tab */}
+            {activeTab === 'users' && (
+                <div className="space-y-6">
+                    {/* Users Without Account */}
+                    {usersWithoutAccount.length > 0 && (
+                        <Card>
+                            <div className="mb-4 flex items-center justify-between">
+                                <h3 className="text-lg font-semibold">Usuários Sem Conta ({usersWithoutAccount.length})</h3>
+                            </div>
+                            <div className="space-y-2">
+                                {usersWithoutAccount.map((user) => (
+                                    <div
+                                        key={user.uid}
+                                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Avatar src={user.photoURL} alt={user.name} size="sm" />
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-medium">{user.name}</p>
+                                                    {user.isMaster && <Badge variant="info">Master</Badge>}
+                                                </div>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">{user.email}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openUserDetails(user)}
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="primary"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setSelectedUser(user)
+                                                    setCreateAccountModal(true)
+                                                }}
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                Criar Conta
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    )}
+
+                    {/* Users With Account */}
+                    {usersWithAccount.length > 0 && (
+                        <Card>
+                            <div className="mb-4 flex items-center justify-between">
+                                <h3 className="text-lg font-semibold">Usuários Com Conta ({usersWithAccount.length})</h3>
+                            </div>
+                            <div className="space-y-2">
+                                {usersWithAccount.map((user) => (
+                                    <div
+                                        key={user.uid}
+                                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Avatar src={user.photoURL} alt={user.name} size="sm" />
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-medium">{user.name}</p>
+                                                    {user.isMaster && <Badge variant="info">Master</Badge>}
+                                                    <Badge variant="success">Com Conta</Badge>
+                                                </div>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">{user.email}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openUserDetails(user)}
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setSelectedUser(user)
+                                                    setAddUserModal(true)
+                                                }}
+                                            >
+                                                <UserPlus className="h-4 w-4" />
+                                                Adicionar em Conta
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    )}
+
+                    {filteredUsers.length === 0 && (
+                        <Card>
+                            <p className="py-8 text-center text-gray-500">Nenhum usuário encontrado.</p>
+                        </Card>
+                    )}
+                </div>
+            )}
+
+            {/* Accounts Tab */}
+            {activeTab === 'accounts' && (
+                <Card>
+                    {filteredAccounts.length === 0 ? (
+                        <p className="py-8 text-center text-gray-500">Nenhuma conta encontrada.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {filteredAccounts.map((account) => {
+                                const titular = users.find((u) => u.uid === account.titularId)
+                                const plan = plans.find((p) => p.id === account.planId)
+                                return (
+                                    <div
+                                        key={account.id}
+                                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
+                                    >
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-medium">{account.name}</h4>
+                                                <Badge variant={account.status === 'active' ? 'success' : 'error'}>
+                                                    {account.status === 'active' ? 'Ativa' : 'Inativa'}
+                                                </Badge>
+                                                {account.isLifetime && <Badge variant="warning">Lifetime</Badge>}
+                                            </div>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                Titular: {titular?.name || 'Desconhecido'} • Plano: {plan?.name || 'Free'}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {account.metrics.currentMembers}/{account.limits.maxMembers} membros •{' '}
+                                                {account.metrics.currentLists}/{account.limits.maxLists} listas
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openAccountDetails(account)}
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => handleDeleteAccount(account)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </Card>
+            )}
+
+            {/* Modal: Create Account */}
             <Modal
                 open={createAccountModal}
                 onClose={() => setCreateAccountModal(false)}
-                title="Criar Conta para Usuário"
+                title="Criar Conta Para Usuário"
             >
-                {selectedUser && (
-                    <div className="space-y-4">
-                        <div className="rounded-lg bg-gray-100 p-3 dark:bg-gray-800">
-                            <p className="text-sm">
-                                <span className="font-semibold">Usuário:</span> {selectedUser.name}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{selectedUser.email}</p>
-                        </div>
-
-                        <Input
-                            label="Nome da Conta"
-                            value={newAccountName}
-                            onChange={(e) => setNewAccountName(e.target.value)}
-                            placeholder="Ex: Conta Familiar"
-                        />
-
-                        <div>
-                            <label className="mb-2 block text-sm font-medium">Plano</label>
-                            <select
-                                value={newAccountPlanId}
-                                onChange={(e) => setNewAccountPlanId(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
-                            >
-                                {plans.map((plan) => (
-                                    <option key={plan.id} value={plan.id}>
-                                        {plan.name} - R$ {plan.price.toFixed(2)}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex gap-2 border-t pt-4">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setCreateAccountModal(false)}
-                                className="flex-1"
-                            >
-                                Cancelar
-                            </Button>
-                            <Button onClick={handleCreateAccount} disabled={actionLoading} className="flex-1">
-                                {actionLoading ? 'Criando...' : 'Criar Conta'}
-                            </Button>
+                <div className="space-y-4">
+                    <div>
+                        <p className="mb-2 text-sm font-medium">Usuário Selecionado:</p>
+                        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+                            <Avatar src={selectedUser?.photoURL} alt={selectedUser?.name || ''} size="sm" />
+                            <div>
+                                <p className="font-medium">{selectedUser?.name}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedUser?.email}</p>
+                            </div>
                         </div>
                     </div>
-                )}
+
+                    <Input
+                        label="Nome da Conta (opcional)"
+                        value={newAccountName}
+                        onChange={(e) => setNewAccountName(e.target.value)}
+                        placeholder={`Conta de ${selectedUser?.name}`}
+                    />
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium">Plano</label>
+                        <select
+                            value={newAccountPlanId}
+                            onChange={(e) => setNewAccountPlanId(e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-800"
+                        >
+                            {plans.map((plan) => (
+                                <option key={plan.id} value={plan.id}>
+                                    {plan.name} - R$ {plan.price}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <Button variant="ghost" onClick={() => setCreateAccountModal(false)} disabled={actionLoading}>
+                            Cancelar
+                        </Button>
+                        <Button variant="primary" onClick={handleCreateAccount} loading={actionLoading}>
+                            Criar Conta
+                        </Button>
+                    </div>
+                </div>
             </Modal>
 
-            {/* Modal: Adicionar Usuário em Conta */}
+            {/* Modal: Add User to Account */}
             <Modal
                 open={addUserModal}
                 onClose={() => setAddUserModal(false)}
                 title="Adicionar Usuário em Conta"
             >
+                <div className="space-y-4">
+                    <div>
+                        <p className="mb-2 text-sm font-medium">Usuário Selecionado:</p>
+                        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+                            <Avatar src={selectedUser?.photoURL} alt={selectedUser?.name || ''} size="sm" />
+                            <div>
+                                <p className="font-medium">{selectedUser?.name}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedUser?.email}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium">Selecione uma Conta</label>
+                        <select
+                            value={selectedAccount?.id || ''}
+                            onChange={(e) => {
+                                const account = accounts.find((a) => a.id === e.target.value)
+                                setSelectedAccount(account || null)
+                            }}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-800"
+                        >
+                            <option value="">Selecione...</option>
+                            {accounts.map((account) => {
+                                const titular = users.find((u) => u.uid === account.titularId)
+                                return (
+                                    <option key={account.id} value={account.id}>
+                                        {account.name} (Titular: {titular?.name})
+                                    </option>
+                                )
+                            })}
+                        </select>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <Button variant="ghost" onClick={() => setAddUserModal(false)} disabled={actionLoading}>
+                            Cancelar
+                        </Button>
+                        <Button variant="primary" onClick={handleAddUserToAccount} loading={actionLoading}>
+                            Adicionar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal: User Details */}
+            <Modal
+                open={userDetailsModal}
+                onClose={() => setUserDetailsModal(false)}
+                title="Detalhes do Usuário"
+            >
                 {selectedUser && (
                     <div className="space-y-4">
-                        <div className="rounded-lg bg-gray-100 p-3 dark:bg-gray-800">
-                            <p className="text-sm">
-                                <span className="font-semibold">Usuário:</span> {selectedUser.name}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{selectedUser.email}</p>
+                        <div className="flex items-center gap-4">
+                            <Avatar src={selectedUser.photoURL} alt={selectedUser.name} size="lg" />
+                            <div>
+                                <h3 className="text-lg font-semibold">{selectedUser.name}</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedUser.email}</p>
+                            </div>
                         </div>
 
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">Status:</p>
+                                <Badge variant={selectedUser.isActive ? 'success' : 'error'}>
+                                    {selectedUser.isActive ? 'Ativo' : 'Inativo'}
+                                </Badge>
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">Papel:</p>
+                                <Badge variant="info">
+                                    {selectedUser.isMaster ? 'Master' : 'Usuário'}
+                                </Badge>
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">Conta Padrão:</p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    {selectedUser.defaultAccountId
+                                        ? accounts.find((a) => a.id === selectedUser.defaultAccountId)?.name || 'N/A'
+                                        : 'Sem conta'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">Cadastrado em:</p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    {selectedUser.createdAt ? selectedUser.createdAt.toLocaleDateString('pt-BR') : 'N/A'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Ações do Master */}
+                        {!selectedUser.isMaster && (
+                            <div className="mt-6 flex gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+                                {selectedUser.defaultAccountId && (
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => {
+                                            setConfirmDialog({
+                                                open: true,
+                                                title: 'Remover de Todas as Contas',
+                                                description: `Tem certeza que deseja remover ${selectedUser.name} de todas as contas? O usuário perderá acesso mas não será deletado.`,
+                                                onConfirm: async () => {
+                                                    try {
+                                                        if (selectedUser.defaultAccountId) {
+                                                            await masterService.removeUserFromAccountManually({
+                                                                userId: selectedUser.uid,
+                                                                accountId: selectedUser.defaultAccountId,
+                                                            })
+                                                            alert('Usuário removido da conta!')
+                                                            setUserDetailsModal(false)
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Erro ao remover usuário:', error)
+                                                        alert(
+                                                            `Erro: ${error instanceof Error ? error.message : String(error)}`
+                                                        )
+                                                    } finally {
+                                                        setConfirmDialog({ ...confirmDialog, open: false })
+                                                    }
+                                                },
+                                            })
+                                        }}
+                                    >
+                                        <UserMinus className="h-4 w-4" />
+                                        Remover de Conta
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                        setConfirmDialog({
+                                            open: true,
+                                            title: 'Deletar Usuário Permanentemente',
+                                            description: `ATENÇÃO: Esta ação irá deletar completamente o usuário ${selectedUser.name} do sistema (Auth + Firestore), remover de todas as contas, deletar convites e listas criadas. Esta ação NÃO pode ser desfeita!`,
+                                            onConfirm: async () => {
+                                                try {
+                                                    await accountsService.deleteUser(selectedUser.uid)
+                                                    alert('Usuário deletado com sucesso!')
+                                                    setUserDetailsModal(false)
+                                                } catch (error) {
+                                                    console.error('Erro ao deletar usuário:', error)
+                                                    alert(
+                                                        `Erro: ${error instanceof Error ? error.message : String(error)}`
+                                                    )
+                                                } finally {
+                                                    setConfirmDialog({ ...confirmDialog, open: false })
+                                                }
+                                            },
+                                        })
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Deletar Usuário
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Modal>
+
+            {/* Modal: Account Details */}
+            <Modal
+                open={accountDetailsModal}
+                onClose={() => setAccountDetailsModal(false)}
+                title="Detalhes da Conta"
+            >
+                {selectedAccount && (
+                    <div className="space-y-4">
                         <div>
-                            <label className="mb-2 block text-sm font-medium">Selecione a Conta</label>
-                            <select
-                                value={selectedAccount?.id || ''}
-                                onChange={(e) => {
-                                    const account = accounts.find((a) => a.id === e.target.value)
-                                    setSelectedAccount(account || null)
-                                }}
-                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
-                            >
-                                <option value="">Selecione uma conta</option>
-                                {accounts.map((account) => (
-                                    <option key={account.id} value={account.id}>
-                                        {account.name} ({account.planId}) - {account.metrics.currentMembers}/{account.limits.maxMembers} membros
-                                    </option>
-                                ))}
-                            </select>
+                            <h3 className="text-lg font-semibold">{selectedAccount.name}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">ID: {selectedAccount.id}</p>
                         </div>
 
-                        <div className="flex gap-2 border-t pt-4">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setAddUserModal(false)}
-                                className="flex-1"
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                onClick={handleAddUserToAccount}
-                                disabled={actionLoading || !selectedAccount}
-                                className="flex-1"
-                            >
-                                {actionLoading ? 'Adicionando...' : 'Adicionar'}
-                            </Button>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">Status:</p>
+                                <Badge variant={selectedAccount.status === 'active' ? 'success' : 'error'}>
+                                    {selectedAccount.status === 'active' ? 'Ativa' : 'Inativa'}
+                                </Badge>
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">Plano:</p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    {plans.find((p) => p.id === selectedAccount.planId)?.name || 'Free'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">Titular:</p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    {users.find((u) => u.uid === selectedAccount.titularId)?.name || 'Desconhecido'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-300">Lifetime:</p>
+                                <Badge variant={selectedAccount.isLifetime ? 'warning' : 'default'}>
+                                    {selectedAccount.isLifetime ? 'Sim' : 'Não'}
+                                </Badge>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="mb-2 font-medium text-gray-700 dark:text-gray-300">Limites:</p>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <p>
+                                        Membros: {selectedAccount.metrics.currentMembers}/
+                                        {selectedAccount.limits.maxMembers}
+                                    </p>
+                                    <p>
+                                        Listas: {selectedAccount.metrics.currentLists}/{selectedAccount.limits.maxLists}
+                                    </p>
+                                    <p className="col-span-2">
+                                        Storage: {selectedAccount.metrics.currentStorageMB.toFixed(2)}MB/
+                                        {selectedAccount.limits.maxStorageMB}MB
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
             </Modal>
-        </>
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog
+                open={confirmDialog.open}
+                onCancel={() => setConfirmDialog({ ...confirmDialog, open: false })}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                description={confirmDialog.description}
+                confirmLabel="Excluir"
+                cancelLabel="Cancelar"
+            />
+        </div>
     )
 }
-

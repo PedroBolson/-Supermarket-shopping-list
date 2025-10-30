@@ -22,8 +22,8 @@ service cloud.firestore {
     }
 
     function hasActiveMembership(accountId) {
-      return exists(/databases/$(database)/documents/accountMembers/$(accountId)/members/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/accountMembers/$(accountId)/members/$(request.auth.uid)).data.status == 'active';
+      return exists(/databases/$(database)/documents/accounts/$(accountId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/accounts/$(accountId)/members/$(request.auth.uid)).data.status == 'active';
     }
 
     match /users/{uid} {
@@ -56,7 +56,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /accountMembers/{accountId}/members/{memberId} {
+    match /accounts/{accountId}/members/{memberId} {
       allow read: if isSignedIn() && (
         isMaster() ||
         isAccountMember(accountId) ||

@@ -12,7 +12,7 @@ function getErrorMessage(error) {
         return error.message;
     return String(error);
 }
-exports.createAccountManually = (0, https_1.onCall)(async (request) => {
+exports.createAccountManually = (0, https_1.onCall)({ cors: true }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {
@@ -86,7 +86,7 @@ exports.createAccountManually = (0, https_1.onCall)(async (request) => {
         throw error;
     }
 });
-exports.addUserToAccountManually = (0, https_1.onCall)(async (request) => {
+exports.addUserToAccountManually = (0, https_1.onCall)({ cors: true }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {
@@ -162,7 +162,7 @@ exports.addUserToAccountManually = (0, https_1.onCall)(async (request) => {
         throw error;
     }
 });
-exports.removeUserFromAccountManually = (0, https_1.onCall)(async (request) => {
+exports.removeUserFromAccountManually = (0, https_1.onCall)({ cors: true }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid) {

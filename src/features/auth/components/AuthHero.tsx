@@ -31,7 +31,7 @@ export function AuthHero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
           >
-            Nosso cantinho inteligente para organizar as compras sem stress.
+            Organize suas compras em família, de forma inteligente.
           </motion.h1>
 
           <motion.p
@@ -40,7 +40,7 @@ export function AuthHero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.6 }}
           >
-            É aqui que a gente combina o que falta, vê quem adicionou cada item e garante que a geladeira nunca fique vazia.
+            Crie sua conta gratuita, convide membros da família e mantenha suas listas de compras sempre sincronizadas em tempo real.
           </motion.p>
         </div>
 
@@ -58,9 +58,9 @@ export function AuthHero() {
           }}
         >
           {[
-            { icon: ListChecks, text: 'Listas atualizadas em tempo real para nós dois' },
-            { icon: Users, text: 'Cada item mostra quem adicionou ou finalizou' },
-            { icon: Check, text: 'Marque o que já compramos e mantenha tudo sincronizado' },
+            { icon: ListChecks, text: 'Listas compartilhadas e sincronizadas em tempo real' },
+            { icon: Users, text: 'Convide membros da família e colabore nas compras' },
+            { icon: Check, text: 'Veja quem adicionou cada item e acompanhe o progresso' },
           ].map(({ icon: Icon, text }) => (
             <motion.li
               key={text}

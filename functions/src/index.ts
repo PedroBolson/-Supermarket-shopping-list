@@ -34,3 +34,6 @@ export {
     addUserToAccountManually,
     removeUserFromAccountManually,
 } from "./functions/master";
+
+// Account management
+export { deleteAccount, deleteUser } from "./functions/accounts";
