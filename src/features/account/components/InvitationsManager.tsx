@@ -7,6 +7,7 @@ import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Badge } from '../../../components/ui/Badge'
 import { Modal } from '../../../components/ui/Modal'
+import { formatDate } from '../../../utils/date'
 import * as invitationService from '../../../services/invitations'
 
 export function InvitationsManager() {
@@ -112,9 +113,9 @@ export function InvitationsManager() {
                                     </div>
                                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                                         Enviado por {invitation.invitedByName} em{' '}
-                                        {invitation.createdAt.toLocaleDateString()}
+                                        {formatDate(invitation.createdAt)}
                                         {invitation.status === 'pending' &&
-                                            ` • Expira em ${invitation.expiresAt.toLocaleDateString()}`}
+                                            ` • Expira em ${formatDate(invitation.expiresAt)}`}
                                     </p>
                                 </div>
 

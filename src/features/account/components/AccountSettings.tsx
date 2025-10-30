@@ -6,6 +6,7 @@ import { useAccount } from '../../../hooks/use-account'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Badge } from '../../../components/ui/Badge'
+import { formatDate } from '../../../utils/date'
 
 export function AccountSettings() {
     const { account } = useAccount()
@@ -91,7 +92,7 @@ export function AccountSettings() {
                         <div className="flex justify-between">
                             <span className="text-sm text-gray-600 dark:text-gray-400">Expira em:</span>
                             <span className="font-medium">
-                                {account.expiresAt.toLocaleDateString()}
+                                {formatDate(account.expiresAt)}
                             </span>
                         </div>
                     ) : null}

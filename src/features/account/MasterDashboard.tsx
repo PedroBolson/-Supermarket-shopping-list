@@ -1,19 +1,20 @@
-import { Shield, Users, Database, FileText, Settings } from 'lucide-react'
+import { Shield, Users, Database, Crown } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
-import { MasterAccountManager } from './components/MasterAccountManager'
 import { MasterPlansManager } from './components/MasterPlansManager'
 import { MasterUsersAndAccounts } from './components/MasterUsersAndAccounts'
+import { TitularDashboard } from './TitularDashboard'
 import { useState, useEffect } from 'react'
 import { collection, query, where, getCountFromServer } from 'firebase/firestore'
 import { db } from '../../config/firebase'
+import { useAuthContext } from '../../contexts/auth-context'
 
 export function MasterDashboard() {
-    const [activeTab, setActiveTab] = useState<'overview' | 'accounts' | 'plans'>('overview')
+    const { currentAccount } = useAuthContext()
+    const [activeTab, setActiveTab] = useState<'users' | 'myaccount' | 'plans'>('users')
     const [stats, setStats] = useState({
         activeAccounts: 0,
         totalUsers: 0,
         activePlans: 0,
-        auditLogs: 0,
     })
     const [loadingStats, setLoadingStats] = useState(true)
 
@@ -30,7 +31,6 @@ export function MasterDashboard() {
                     activeAccounts: accountsCount.data().count,
                     totalUsers: usersCount.data().count,
                     activePlans: plansCount.data().count,
-                    auditLogs: 0,
                 })
             } catch (error) {
                 console.error('Erro ao carregar estatísticas:', error)
@@ -56,7 +56,7 @@ export function MasterDashboard() {
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-3">
                 <Card>
                     <div className="flex items-center gap-4">
                         <div className="rounded-lg bg-blue-100 p-3 dark:bg-blue-900">
@@ -98,26 +98,12 @@ export function MasterDashboard() {
                         </div>
                     </div>
                 </Card>
-
-                <Card>
-                    <div className="flex items-center gap-4">
-                        <div className="rounded-lg bg-yellow-100 p-3 dark:bg-yellow-900">
-                            <FileText className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Logs de Auditoria</p>
-                            <p className="text-2xl font-bold">
-                                {loadingStats ? '...' : stats.auditLogs || '-'}
-                            </p>
-                        </div>
-                    </div>
-                </Card>
             </div>
 
             <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
                 <button
-                    onClick={() => setActiveTab('overview')}
-                    className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'overview'
+                    onClick={() => setActiveTab('users')}
+                    className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'users'
                         ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                         : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                         }`}
@@ -126,14 +112,14 @@ export function MasterDashboard() {
                     Usuários & Contas
                 </button>
                 <button
-                    onClick={() => setActiveTab('accounts')}
-                    className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'accounts'
+                    onClick={() => setActiveTab('myaccount')}
+                    className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'myaccount'
                         ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                         : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                         }`}
                 >
-                    <Settings className="h-4 w-4" />
-                    Gerenciar Contas
+                    <Crown className="h-4 w-4" />
+                    Minha Conta
                 </button>
                 <button
                     onClick={() => setActiveTab('plans')}
@@ -147,41 +133,27 @@ export function MasterDashboard() {
                 </button>
             </div>
 
-            <Card>
-                {activeTab === 'overview' && <MasterUsersAndAccounts />}
-                {activeTab === 'accounts' && <MasterAccountManager />}
+            <div>
+                {activeTab === 'users' && <MasterUsersAndAccounts />}
+                {activeTab === 'myaccount' && (
+                    currentAccount ? (
+                        <TitularDashboard />
+                    ) : (
+                        <Card>
+                            <div className="py-12 text-center">
+                                <Crown className="mx-auto h-12 w-12 text-gray-400" />
+                                <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+                                    Você não possui uma conta pessoal
+                                </h3>
+                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                    Como Master, você tem acesso a todas as contas do sistema, mas não possui uma conta própria.
+                                </p>
+                            </div>
+                        </Card>
+                    )
+                )}
                 {activeTab === 'plans' && <MasterPlansManager />}
-            </Card>
-
-            <Card>
-                <div className="space-y-4">
-                    <h2 className="text-xl font-semibold">Recursos Master</h2>
-                    <ul className="space-y-2 text-sm">
-                        <li className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-purple-500" />
-                            Trocar planos de qualquer conta
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-purple-500" />
-                            Conceder acesso vitalício
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-purple-500" />
-                            Ajustar limites customizados
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-purple-500" />
-                            Suspender/reativar contas
-                        </li>
-                        <li className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-purple-500" />
-                            Visualizar logs de auditoria
-                        </li>
-                    </ul>
-                </div>
-            </Card>
+            </div>
         </div>
     )
 }
-
-

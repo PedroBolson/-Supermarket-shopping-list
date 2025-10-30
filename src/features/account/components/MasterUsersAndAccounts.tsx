@@ -11,8 +11,11 @@ import { ConfirmDialog } from '../../../components/feedback/ConfirmDialog'
 import { Users, Building2, Plus, UserPlus, Search, Eye, Trash2, UserMinus } from 'lucide-react'
 import type { UserProfile, Account } from '../../../types'
 import { usePlans } from '../../../hooks/use-plans'
+import { formatDate } from '../../../utils/date'
 import * as masterService from '../../../services/master'
 import * as accountsService from '../../../services/accounts'
+import * as plansService from '../../../services/plans'
+import * as adminService from '../../../services/admin'
 
 export function MasterUsersAndAccounts() {
     const [users, setUsers] = useState<UserProfile[]>([])
@@ -25,6 +28,8 @@ export function MasterUsersAndAccounts() {
     const [addUserModal, setAddUserModal] = useState(false)
     const [userDetailsModal, setUserDetailsModal] = useState(false)
     const [accountDetailsModal, setAccountDetailsModal] = useState(false)
+    const [changePlanModal, setChangePlanModal] = useState(false)
+    const [adjustLimitsModal, setAdjustLimitsModal] = useState(false)
     const [actionLoading, setActionLoading] = useState(false)
 
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
@@ -32,6 +37,13 @@ export function MasterUsersAndAccounts() {
 
     const [newAccountName, setNewAccountName] = useState('')
     const [newAccountPlanId, setNewAccountPlanId] = useState('free')
+
+    const [selectedPlanId, setSelectedPlanId] = useState('')
+    const [newLimits, setNewLimits] = useState({
+        maxMembers: 0,
+        maxLists: 0,
+        maxStorageMB: 0,
+    })
 
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean
@@ -214,8 +226,8 @@ export function MasterUsersAndAccounts() {
                         setSearchTerm('')
                     }}
                     className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'users'
-                            ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                            : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                        ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                         }`}
                 >
                     <Users className="h-4 w-4" />
@@ -227,8 +239,8 @@ export function MasterUsersAndAccounts() {
                         setSearchTerm('')
                     }}
                     className={`flex items-center gap-2 border-b-2 px-4 py-2 font-medium transition-colors ${activeTab === 'accounts'
-                            ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                            : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                        ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                         }`}
                 >
                     <Building2 className="h-4 w-4" />
@@ -557,7 +569,7 @@ export function MasterUsersAndAccounts() {
                             <div>
                                 <p className="font-medium text-gray-700 dark:text-gray-300">Cadastrado em:</p>
                                 <p className="text-gray-600 dark:text-gray-400">
-                                    {selectedUser.createdAt ? selectedUser.createdAt.toLocaleDateString('pt-BR') : 'N/A'}
+                                    {formatDate(selectedUser.createdAt)}
                                 </p>
                             </div>
                         </div>
@@ -688,6 +700,278 @@ export function MasterUsersAndAccounts() {
                                     </p>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Ações do Master */}
+                        <div className="mt-6 space-y-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+                            <h4 className="font-medium text-gray-900 dark:text-gray-100">Ações Master</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                        setSelectedPlanId(selectedAccount.planId)
+                                        setChangePlanModal(true)
+                                    }}
+                                >
+                                    Trocar Plano
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                        setConfirmDialog({
+                                            open: true,
+                                            title: selectedAccount.isLifetime ? 'Remover Acesso Vitalício' : 'Conceder Acesso Vitalício',
+                                            description: selectedAccount.isLifetime
+                                                ? `Remover acesso vitalício da conta "${selectedAccount.name}"?`
+                                                : `Conceder acesso vitalício para a conta "${selectedAccount.name}"? A conta nunca expirará.`,
+                                            onConfirm: async () => {
+                                                try {
+                                                    if (!selectedAccount.isLifetime) {
+                                                        await plansService.grantLifetimeAccess({ accountId: selectedAccount.id })
+                                                    }
+                                                    alert(selectedAccount.isLifetime ? 'Acesso vitalício removido!' : 'Acesso vitalício concedido!')
+                                                } catch (error) {
+                                                    console.error('Erro:', error)
+                                                    alert(`Erro: ${error instanceof Error ? error.message : String(error)}`)
+                                                } finally {
+                                                    setConfirmDialog({ ...confirmDialog, open: false })
+                                                }
+                                            },
+                                        })
+                                    }}
+                                >
+                                    {selectedAccount.isLifetime ? 'Remover' : 'Dar'} Vitalício
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                        setNewLimits({
+                                            maxMembers: selectedAccount.limits.maxMembers,
+                                            maxLists: selectedAccount.limits.maxLists,
+                                            maxStorageMB: selectedAccount.limits.maxStorageMB,
+                                        })
+                                        setAdjustLimitsModal(true)
+                                    }}
+                                >
+                                    Ajustar Limites
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                        setConfirmDialog({
+                                            open: true,
+                                            title: selectedAccount.status === 'active' ? 'Suspender Conta' : 'Reativar Conta',
+                                            description: selectedAccount.status === 'active'
+                                                ? `Suspender a conta "${selectedAccount.name}"? Os membros não poderão acessar.`
+                                                : `Reativar a conta "${selectedAccount.name}"?`,
+                                            onConfirm: async () => {
+                                                try {
+                                                    await adminService.suspendAccount({
+                                                        accountId: selectedAccount.id,
+                                                        suspend: selectedAccount.status === 'active',
+                                                    })
+                                                    alert(selectedAccount.status === 'active' ? 'Conta suspensa!' : 'Conta reativada!')
+                                                } catch (error) {
+                                                    console.error('Erro:', error)
+                                                    alert(`Erro: ${error instanceof Error ? error.message : String(error)}`)
+                                                } finally {
+                                                    setConfirmDialog({ ...confirmDialog, open: false })
+                                                }
+                                            },
+                                        })
+                                    }}
+                                >
+                                    {selectedAccount.status === 'active' ? 'Suspender' : 'Reativar'}
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                        setAccountDetailsModal(false)
+                                        handleDeleteAccount(selectedAccount)
+                                    }}
+                                    className="col-span-2"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Deletar Conta
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Modal: Trocar Plano */}
+            <Modal
+                open={changePlanModal}
+                onClose={() => setChangePlanModal(false)}
+                title="Trocar Plano da Conta"
+            >
+                {selectedAccount && (
+                    <div className="space-y-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Alterar o plano da conta <strong>{selectedAccount.name}</strong>
+                        </p>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Selecione o novo plano:
+                            </label>
+                            <select
+                                className="w-full rounded-md border border-gray-300 p-2 dark:border-gray-700 dark:bg-gray-800"
+                                value={selectedPlanId}
+                                onChange={(e) => setSelectedPlanId(e.target.value)}
+                            >
+                                {plans.map((plan) => (
+                                    <option key={plan.id} value={plan.id}>
+                                        {plan.name} - R$ {plan.price}/mês
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {plans.find(p => p.id === selectedPlanId) && (
+                                <div className="mt-2 rounded bg-gray-100 p-3 dark:bg-gray-800">
+                                    <p className="font-medium">Limites do plano selecionado:</p>
+                                    <ul className="mt-2 space-y-1">
+                                        <li>• Membros: {plans.find(p => p.id === selectedPlanId)?.limits.maxMembers}</li>
+                                        <li>• Listas: {plans.find(p => p.id === selectedPlanId)?.limits.maxLists}</li>
+                                        <li>• Storage: {plans.find(p => p.id === selectedPlanId)?.limits.maxStorageMB}MB</li>
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={async () => {
+                                    setActionLoading(true)
+                                    try {
+                                        await plansService.switchPlan({
+                                            accountId: selectedAccount.id,
+                                            newPlanId: selectedPlanId,
+                                        })
+                                        setChangePlanModal(false)
+                                        setConfirmDialog({
+                                            open: true,
+                                            title: 'Sucesso!',
+                                            description: 'Plano alterado com sucesso!',
+                                            onConfirm: () => setConfirmDialog({ ...confirmDialog, open: false }),
+                                        })
+                                    } catch (error) {
+                                        console.error('Erro ao trocar plano:', error)
+                                        setConfirmDialog({
+                                            open: true,
+                                            title: 'Erro',
+                                            description: `Erro: ${error instanceof Error ? error.message : String(error)}`,
+                                            onConfirm: () => setConfirmDialog({ ...confirmDialog, open: false }),
+                                        })
+                                    } finally {
+                                        setActionLoading(false)
+                                    }
+                                }}
+                                loading={actionLoading}
+                                className="flex-1"
+                            >
+                                Confirmar Troca
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                onClick={() => setChangePlanModal(false)}
+                                className="flex-1"
+                            >
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Modal: Ajustar Limites */}
+            <Modal
+                open={adjustLimitsModal}
+                onClose={() => setAdjustLimitsModal(false)}
+                title="Ajustar Limites Personalizados"
+            >
+                {selectedAccount && (
+                    <div className="space-y-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Ajustar limites personalizados para <strong>{selectedAccount.name}</strong>
+                        </p>
+
+                        <div className="rounded bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+                            ⚠️ Estes limites substituem os limites do plano atual.
+                        </div>
+
+                        <Input
+                            type="number"
+                            label="Máximo de Membros"
+                            value={newLimits.maxMembers}
+                            onChange={(e) => setNewLimits({ ...newLimits, maxMembers: parseInt(e.target.value) || 0 })}
+                            min="1"
+                        />
+
+                        <Input
+                            type="number"
+                            label="Máximo de Listas"
+                            value={newLimits.maxLists}
+                            onChange={(e) => setNewLimits({ ...newLimits, maxLists: parseInt(e.target.value) || 0 })}
+                            min="1"
+                        />
+
+                        <Input
+                            type="number"
+                            label="Storage Máximo (MB)"
+                            value={newLimits.maxStorageMB}
+                            onChange={(e) => setNewLimits({ ...newLimits, maxStorageMB: parseInt(e.target.value) || 0 })}
+                            min="1"
+                        />
+
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={async () => {
+                                    setActionLoading(true)
+                                    try {
+                                        await plansService.updateAccountLimits({
+                                            accountId: selectedAccount.id,
+                                            limits: newLimits,
+                                        })
+                                        setAdjustLimitsModal(false)
+                                        setConfirmDialog({
+                                            open: true,
+                                            title: 'Sucesso!',
+                                            description: 'Limites ajustados com sucesso!',
+                                            onConfirm: () => setConfirmDialog({ ...confirmDialog, open: false }),
+                                        })
+                                    } catch (error) {
+                                        console.error('Erro ao ajustar limites:', error)
+                                        setConfirmDialog({
+                                            open: true,
+                                            title: 'Erro',
+                                            description: `Erro: ${error instanceof Error ? error.message : String(error)}`,
+                                            onConfirm: () => setConfirmDialog({ ...confirmDialog, open: false }),
+                                        })
+                                    } finally {
+                                        setActionLoading(false)
+                                    }
+                                }}
+                                loading={actionLoading}
+                                className="flex-1"
+                            >
+                                Salvar Limites
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                onClick={() => setAdjustLimitsModal(false)}
+                                className="flex-1"
+                            >
+                                Cancelar
+                            </Button>
                         </div>
                     </div>
                 )}

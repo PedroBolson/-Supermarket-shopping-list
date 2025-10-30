@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.deleteAccount = exports.removeUserFromAccountManually = exports.addUserToAccountManually = exports.createAccountManually = exports.checkExpiredInvitations = exports.checkExpiredAccounts = exports.suspendAccount = exports.demoteFromMaster = exports.promoteToMaster = exports.updateAccountLimits = exports.grantLifetimeAccess = exports.switchPlan = exports.transferOwnership = exports.removeMember = exports.suspendMember = exports.revokeInvitation = exports.acceptInvitation = exports.sendInvitation = exports.setupNewUser = void 0;
+exports.onFileDeleted = exports.onFileUploaded = exports.deleteUser = exports.deleteAccount = exports.removeUserFromAccountManually = exports.addUserToAccountManually = exports.createAccountManually = exports.checkExpiredInvitations = exports.checkExpiredAccounts = exports.suspendAccount = exports.demoteFromMaster = exports.promoteToMaster = exports.updateAccountLimits = exports.grantLifetimeAccess = exports.switchPlan = exports.transferOwnership = exports.removeMember = exports.suspendMember = exports.revokeInvitation = exports.acceptInvitation = exports.sendInvitation = exports.setupNewUser = void 0;
 var auth_1 = require("./triggers/auth");
 Object.defineProperty(exports, "setupNewUser", { enumerable: true, get: function () { return auth_1.setupNewUser; } });
 var invitations_1 = require("./functions/invitations");
@@ -30,4 +30,8 @@ Object.defineProperty(exports, "removeUserFromAccountManually", { enumerable: tr
 var accounts_1 = require("./functions/accounts");
 Object.defineProperty(exports, "deleteAccount", { enumerable: true, get: function () { return accounts_1.deleteAccount; } });
 Object.defineProperty(exports, "deleteUser", { enumerable: true, get: function () { return accounts_1.deleteUser; } });
+// Storage triggers
+var storage_1 = require("./triggers/storage");
+Object.defineProperty(exports, "onFileUploaded", { enumerable: true, get: function () { return storage_1.onFileUploaded; } });
+Object.defineProperty(exports, "onFileDeleted", { enumerable: true, get: function () { return storage_1.onFileDeleted; } });
 //# sourceMappingURL=index.js.map

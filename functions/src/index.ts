@@ -37,3 +37,6 @@ export {
 
 // Account management
 export { deleteAccount, deleteUser } from "./functions/accounts";
+
+// Storage triggers
+export { onFileUploaded, onFileDeleted } from "./triggers/storage";
