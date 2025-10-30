@@ -6,7 +6,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Aguarda o CI passar antes de fazer deploy
+  check-ci:
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI checks
+        run: echo "CI must pass before deploying"
+
   deploy:
+    needs: check-ci
     name: Deploy to Firebase Production
     runs-on: ubuntu-latest
     

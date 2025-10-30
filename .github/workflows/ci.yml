@@ -73,6 +73,8 @@ jobs:
       - name: Run ESLint
         working-directory: functions
         run: npm run lint
+        env:
+          ESLINT_USE_FLAT_CONFIG: false
 
   build-functions:
     name: Build Cloud Functions

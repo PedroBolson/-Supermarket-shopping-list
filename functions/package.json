@@ -14,7 +14,7 @@
         "deploy": "firebase deploy --only functions",
         "logs": "firebase functions:log",
         "test": "jest",
-        "lint": "eslint src/**/*.ts",
+        "lint": "ESLINT_USE_FLAT_CONFIG=false eslint 'src/**/*.ts'",
         "lint:fix": "eslint src/**/*.ts --fix"
     },
     "dependencies": {
